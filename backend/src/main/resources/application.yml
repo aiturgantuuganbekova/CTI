@@ -1,0 +1,36 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5434/aiturgan_crypto}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+app:
+  monitoring:
+    enabled: true
+    interval: 60000
+  jwt:
+    secret: aiturgan-crypto-trading-indicator-jwt-secret-key-2024-very-long-secret
+    expiration: 86400000
+  telegram:
+    bot-token: 8627068526:AAHH17qVwS3HJRQUwOAjM1Bjq12oGqzpwYs
+    enabled: true
+  binance:
+    base-url: https://api.binance.com
+    ws-url: wss://stream.binance.com:9443/ws
+
+logging:
+  level:
+    com.aiturgan.crypto: DEBUG
+    org.springframework.security: INFO
