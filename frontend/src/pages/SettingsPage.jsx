@@ -145,6 +145,59 @@ const SettingsPage = () => {
         <p className="text-sm text-gray-400 mb-4">
           Connect your Telegram account to receive real-time signal alerts and trade notifications.
         </p>
+
+        {/* Setup Instructions */}
+        <div className="bg-[#1a1f2e] border border-gray-700/40 rounded-xl p-5 mb-6">
+          <h3 className="text-white text-sm font-semibold mb-4 flex items-center gap-2">
+            <span className="bg-emerald-500/15 text-emerald-400 text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">?</span>
+            How to set up Telegram alerts
+          </h3>
+          <div className="space-y-4">
+            <div className="flex gap-3">
+              <span className="bg-blue-500/15 text-blue-400 text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">1</span>
+              <div>
+                <p className="text-white text-sm font-medium">Open our bot in Telegram</p>
+                <p className="text-gray-400 text-xs mt-0.5">
+                  Search for <a href="https://t.me/aiturgan_cti_bot" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">@aiturgan_cti_bot</a> in Telegram or click the link.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <span className="bg-blue-500/15 text-blue-400 text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">2</span>
+              <div>
+                <p className="text-white text-sm font-medium">Start the bot</p>
+                <p className="text-gray-400 text-xs mt-0.5">
+                  Press <span className="bg-[#151923] text-gray-300 px-1.5 py-0.5 rounded text-[11px] font-mono">Start</span> or send <span className="bg-[#151923] text-gray-300 px-1.5 py-0.5 rounded text-[11px] font-mono">/start</span> to activate the bot.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <span className="bg-blue-500/15 text-blue-400 text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">3</span>
+              <div>
+                <p className="text-white text-sm font-medium">Get your Chat ID</p>
+                <p className="text-gray-400 text-xs mt-0.5">
+                  Send any message to <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">@userinfobot</a> — it will reply with your numeric Chat ID.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <span className="bg-blue-500/15 text-blue-400 text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">4</span>
+              <div>
+                <p className="text-white text-sm font-medium">Paste your Chat ID below and save</p>
+                <p className="text-gray-400 text-xs mt-0.5">
+                  Click <span className="text-emerald-400 font-medium">Send Test</span> to verify it works. You'll receive a test alert in Telegram.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-700/30">
+            <p className="text-gray-500 text-[11px]">
+              You'll receive alerts for <span className="text-green-400 font-medium">BUY</span> and <span className="text-red-400 font-medium">SELL</span> signals only.
+              HOLD signals are not sent to avoid noise. Make sure you have at least one active strategy in the monitoring section below.
+            </p>
+          </div>
+        </div>
+
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[220px]">
             <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Chat ID</label>
