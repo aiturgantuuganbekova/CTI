@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = '/api';
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -30,6 +30,7 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (data) => api.post('/auth/login', data),
   register: (data) => api.post('/auth/register', data),
+  google: (data) => api.post('/auth/google', data),
 };
 
 export const marketAPI = {

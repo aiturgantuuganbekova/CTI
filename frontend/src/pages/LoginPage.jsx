@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
@@ -16,6 +16,47 @@ const LoginPage = () => {
 
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const googleCallbackRef = useRef(null);
+
+  const handleGoogleCallback = useCallback(async (response) => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await authAPI.google({ credential: response.credential });
+      const { token, username: uname, role } = res.data;
+      login(token, { username: uname, role });
+      toast.success('Google login successful!');
+      navigate('/');
+    } catch (err) {
+      const message = err.response?.data?.message || err.response?.data?.error || 'Google login failed';
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [login, navigate]);
+
+  googleCallbackRef.current = handleGoogleCallback;
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+
+    script.onload = () => {
+      window.google.accounts.id.initialize({
+        client_id: '509566552309-8huhumpmchand8gsnv5aocgsjsas59hn.apps.googleusercontent.com',
+        callback: (resp) => googleCallbackRef.current(resp),
+      });
+    };
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,10 +85,6 @@ const LoginPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleOAuth = (provider) => {
-    toast.info(`${provider} login coming soon!`);
   };
 
   return (
@@ -131,7 +168,13 @@ const LoginPage = () => {
           <div className="flex gap-3 mb-5">
             <button
               type="button"
-              onClick={() => handleOAuth('Google')}
+              onClick={() => {
+                if (window.google?.accounts?.id) {
+                  window.google.accounts.id.prompt();
+                } else {
+                  toast.info('Google Sign-In loading...');
+                }
+              }}
               className="flex-1 flex items-center justify-center gap-2 bg-[#1a1f2e] border border-gray-700 rounded-lg py-2.5 text-gray-300 text-sm font-medium hover:border-gray-500 transition-colors"
             >
               <span className="text-base font-bold" style={{ fontFamily: 'sans-serif' }}>
@@ -141,7 +184,7 @@ const LoginPage = () => {
             </button>
             <button
               type="button"
-              onClick={() => handleOAuth('Github')}
+              onClick={() => toast.info('Github login coming soon!')}
               className="flex-1 flex items-center justify-center gap-2 bg-[#1a1f2e] border border-gray-700 rounded-lg py-2.5 text-gray-300 text-sm font-medium hover:border-gray-500 transition-colors"
             >
               <FiGithub className="text-base" />

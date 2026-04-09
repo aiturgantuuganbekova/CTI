@@ -20,6 +20,8 @@ app:
   monitoring:
     enabled: true
     interval: 60000
+  google:
+    client-id: 509566552309-8huhumpmchand8gsnv5aocgsjsas59hn.apps.googleusercontent.com
   jwt:
     secret: aiturgan-crypto-trading-indicator-jwt-secret-key-2024-very-long-secret
     expiration: 86400000
