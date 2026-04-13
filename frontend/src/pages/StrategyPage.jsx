@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { signalAPI, marketAPI, strategyAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { FiPlus, FiTrash2, FiCopy, FiSettings, FiActivity, FiTrendingUp } from 'react-icons/fi';
+import { useI18n } from '../i18n';
 
 const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT'];
 const SYMBOL_LABELS = {
@@ -79,7 +80,15 @@ const BollingerViz = ({ upper, middle, lower }) => (
   </div>
 );
 
+const RISK_LEVEL_KEYS = {
+  'Low Risk': 'strategy.lowRisk',
+  'Medium Risk': 'strategy.mediumRisk',
+  'High Risk': 'strategy.highRisk',
+};
+
 const StrategyPage = () => {
+  const { t } = useI18n();
+
   // Signal generation state
   const [symbol, setSymbol] = useState('BTCUSDT');
   const [strategy, setStrategy] = useState('COMBINED');
@@ -132,9 +141,9 @@ const StrategyPage = () => {
       ]);
       setSignal(signalRes.data);
       if (indicatorRes) setIndicators(indicatorRes.data);
-      toast.success('Signal generated successfully!');
+      toast.success(t('strategy.signalSuccess'));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to generate signal');
+      toast.error(err.response?.data?.message || t('strategy.signalFailed'));
     } finally {
       setGenerating(false);
     }
@@ -148,39 +157,39 @@ const StrategyPage = () => {
         stopLossPercent: parseFloat(newConfig.stopLossPercent),
         takeProfitPercent: parseFloat(newConfig.takeProfitPercent),
       });
-      toast.success('Strategy created!');
+      toast.success(t('strategy.strategyCreated'));
       setShowCreateForm(false);
       setNewConfig({ symbol: 'BTCUSDT', strategyType: 'RSI', timeframe: '1h', stopLossPercent: '2', takeProfitPercent: '4' });
       fetchConfigs();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create strategy');
+      toast.error(err.response?.data?.message || t('strategy.createFailed'));
     }
   };
 
   const handleToggle = async (id) => {
     try {
       await strategyAPI.toggle(id);
-      toast.success('Strategy toggled!');
+      toast.success(t('strategy.strategyToggled'));
       fetchConfigs();
     } catch (err) {
-      toast.error('Failed to toggle strategy');
+      toast.error(t('strategy.toggleFailed'));
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this strategy configuration?')) return;
+    if (!window.confirm(t('strategy.deleteConfirm'))) return;
     try {
       await strategyAPI.delete(id);
-      toast.success('Strategy deleted!');
+      toast.success(t('strategy.strategyDeleted'));
       fetchConfigs();
     } catch (err) {
-      toast.error('Failed to delete strategy');
+      toast.error(t('strategy.deleteFailed'));
     }
   };
 
   const handleCopyConfig = (cfg) => {
     const text = `${cfg.strategyType} | ${cfg.symbol} | ${cfg.timeframe} | SL:${cfg.stopLossPercent}% TP:${cfg.takeProfitPercent}%`;
-    navigator.clipboard.writeText(text).then(() => toast.success('Config copied!')).catch(() => {});
+    navigator.clipboard.writeText(text).then(() => toast.success(t('strategy.configCopied'))).catch(() => {});
   };
 
   // Derived values
@@ -224,8 +233,8 @@ const StrategyPage = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Strategy Engine</h1>
-        <p className="text-sm text-gray-500 mt-1">Configure and validate algorithmic signals for real-time execution.</p>
+        <h1 className="text-2xl font-bold text-white tracking-tight">{t('strategy.title')}</h1>
+        <p className="text-sm text-gray-500 mt-1">{t('strategy.subtitle')}</p>
       </div>
 
       {/* Main two-column layout */}
@@ -234,13 +243,13 @@ const StrategyPage = () => {
         {/* ─── LEFT COLUMN: Configuration ─── */}
         <div className="lg:col-span-2 bg-[#111827] rounded-2xl p-6 border border-gray-800/60">
           <h2 className="text-xs tracking-widest text-gray-500 uppercase font-semibold mb-5 flex items-center gap-2">
-            <FiSettings className="text-gray-400" size={14} /> Configuration
+            <FiSettings className="text-gray-400" size={14} /> {t('strategy.configuration')}
           </h2>
 
           <div className="space-y-4">
             {/* Coin Selector */}
             <div>
-              <label className={labelClasses}>Coin Selector</label>
+              <label className={labelClasses}>{t('strategy.coinSelector')}</label>
               <select value={symbol} onChange={(e) => setSymbol(e.target.value)} className={selectClasses}>
                 {SYMBOLS.map((s) => <option key={s} value={s}>{SYMBOL_LABELS[s]}</option>)}
               </select>
@@ -248,7 +257,7 @@ const StrategyPage = () => {
 
             {/* Strategy Selector */}
             <div>
-              <label className={labelClasses}>Strategy Selector</label>
+              <label className={labelClasses}>{t('strategy.strategySelector')}</label>
               <select value={strategy} onChange={(e) => setStrategy(e.target.value)} className={selectClasses}>
                 {STRATEGIES.map((s) => <option key={s} value={s}>{STRATEGY_LABELS[s]}</option>)}
               </select>
@@ -257,16 +266,16 @@ const StrategyPage = () => {
             {/* Timeframe & Risk Level side by side */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelClasses}>Timeframe</label>
+                <label className={labelClasses}>{t('strategy.timeframe')}</label>
                 <select value={timeframe} onChange={(e) => setTimeframe(e.target.value)} className={selectClasses}>
                   {TIMEFRAMES.map((tf) => <option key={tf} value={tf}>{tf}</option>)}
                 </select>
               </div>
               <div>
-                <label className={labelClasses}>Risk Level</label>
+                <label className={labelClasses}>{t('strategy.riskLevel')}</label>
                 <select value={riskLevel} onChange={(e) => setRiskLevel(e.target.value)}
                   className={`${selectClasses} ${riskColor} border`}>
-                  {RISK_LEVELS.map((r) => <option key={r} value={r}>{r}</option>)}
+                  {RISK_LEVELS.map((r) => <option key={r} value={r}>{t(RISK_LEVEL_KEYS[r])}</option>)}
                 </select>
               </div>
             </div>
@@ -274,11 +283,11 @@ const StrategyPage = () => {
             {/* Stop-Loss & Take-Profit */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelClasses}>Stop-Loss %</label>
+                <label className={labelClasses}>{t('strategy.stopLoss')}</label>
                 <input type="number" step="0.1" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} className={inputClasses} />
               </div>
               <div>
-                <label className={labelClasses}>Take-Profit %</label>
+                <label className={labelClasses}>{t('strategy.takeProfit')}</label>
                 <input type="number" step="0.1" value={takeProfit} onChange={(e) => setTakeProfit(e.target.value)} className={inputClasses} />
               </div>
             </div>
@@ -293,7 +302,7 @@ const StrategyPage = () => {
                 </svg>
               ) : (
                 <>
-                  <FiActivity size={16} /> GENERATE SIGNAL
+                  <FiActivity size={16} /> {t('strategy.generateSignal')}
                 </>
               )}
             </button>
@@ -301,7 +310,7 @@ const StrategyPage = () => {
 
           {/* Indicator Status */}
           <div className="mt-6 pt-5 border-t border-gray-800/60">
-            <h3 className="text-[11px] tracking-widest text-gray-500 uppercase font-semibold mb-4">Indicator Status</h3>
+            <h3 className="text-[11px] tracking-widest text-gray-500 uppercase font-semibold mb-4">{t('strategy.indicatorStatus')}</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-400">RSI (14)</span>
@@ -312,7 +321,7 @@ const StrategyPage = () => {
                 <span className="text-sm font-mono text-white font-medium">${typeof ema200Disp === 'number' ? ema200Disp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ema200Disp}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">Volatility Index</span>
+                <span className="text-sm text-gray-400">{t('strategy.volatilityIndex')}</span>
                 <span className={`text-sm font-medium ${volatilityColor}`}>{volatilityLabel}</span>
               </div>
             </div>
@@ -324,21 +333,21 @@ const StrategyPage = () => {
           {/* Analysis Result Card */}
           <div className={`bg-[#111827] rounded-2xl p-6 border ${signalBorderClass} ${signalGlowClass}`}>
             <h2 className="text-xs tracking-widest text-gray-500 uppercase font-semibold mb-5 flex items-center gap-2">
-              <FiTrendingUp className="text-gray-400" size={14} /> Analysis Result
+              <FiTrendingUp className="text-gray-400" size={14} /> {t('strategy.analysisResult')}
             </h2>
 
             {signal ? (
               <div className="flex items-center justify-between gap-6">
                 <div className="flex-1 min-w-0">
                   <h3 className={`text-3xl lg:text-4xl font-extrabold ${signalColorClass} mb-3 tracking-tight`}>
-                    {signalType} SIGNAL
+                    {signalType === 'BUY' ? t('strategy.buySignal') : signalType === 'SELL' ? t('strategy.sellSignal') : t('strategy.holdSignal')}
                   </h3>
                   <p className="text-sm text-gray-400 leading-relaxed">
                     {signalType === 'BUY'
-                      ? 'Multiple indicators confirm a bullish breakout pattern with strong momentum convergence across selected timeframes.'
+                      ? t('strategy.buyDescription')
                       : signalType === 'SELL'
-                        ? 'Bearish divergence detected across multiple indicators, suggesting potential downside pressure in the near term.'
-                        : 'Mixed signals across indicators. Consider waiting for clearer confirmation before entering a position.'}
+                        ? t('strategy.sellDescription')
+                        : t('strategy.holdDescription')}
                   </p>
                   {signal.price && (
                     <div className="mt-3 flex gap-4 text-xs text-gray-500">
@@ -356,7 +365,7 @@ const StrategyPage = () => {
               <div className="flex items-center justify-center h-36 text-gray-600">
                 <div className="text-center">
                   <FiActivity size={28} className="mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">Generate a signal to see analysis results</p>
+                  <p className="text-sm">{t('strategy.generateResult')}</p>
                 </div>
               </div>
             )}
@@ -367,7 +376,7 @@ const StrategyPage = () => {
             {/* RSI Panel */}
             <div className="bg-[#111827] rounded-xl p-4 border border-gray-800/60">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-[11px] tracking-wider text-gray-500 uppercase font-semibold">RSI (Relative Strength)</h4>
+                <h4 className="text-[11px] tracking-wider text-gray-500 uppercase font-semibold">{t('strategy.rsiStrength')}</h4>
                 <span className="text-[11px] font-mono text-blue-400">{typeof rsiValue === 'number' ? rsiValue.toFixed(1) : '—'}</span>
               </div>
               <MiniBarChart data={rsiBarData} color="#22c55e" maxVal={100} />
@@ -380,15 +389,15 @@ const StrategyPage = () => {
             {/* MACD Panel */}
             <div className="bg-[#111827] rounded-xl p-4 border border-gray-800/60">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-[11px] tracking-wider text-gray-500 uppercase font-semibold">MACD Convergence</h4>
-                <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">Crossover Detected</span>
+                <h4 className="text-[11px] tracking-wider text-gray-500 uppercase font-semibold">{t('strategy.macdConvergence')}</h4>
+                <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">{t('strategy.crossoverDetected')}</span>
               </div>
               <MiniBarChart data={macdBarData} color="#60a5fa" />
             </div>
 
             {/* EMA Ribbon Panel */}
             <div className="bg-[#111827] rounded-xl p-4 border border-gray-800/60">
-              <h4 className="text-[11px] tracking-wider text-gray-500 uppercase font-semibold mb-3">EMA Ribbon Analysis</h4>
+              <h4 className="text-[11px] tracking-wider text-gray-500 uppercase font-semibold mb-3">{t('strategy.emaRibbon')}</h4>
               <div className="space-y-2.5">
                 {[
                   { label: 'EMA 20', value: ema20, color: '#22c55e' },
@@ -406,7 +415,7 @@ const StrategyPage = () => {
 
             {/* Bollinger Bands Panel */}
             <div className="bg-[#111827] rounded-xl p-4 border border-gray-800/60">
-              <h4 className="text-[11px] tracking-wider text-gray-500 uppercase font-semibold mb-3">Bollinger Bands</h4>
+              <h4 className="text-[11px] tracking-wider text-gray-500 uppercase font-semibold mb-3">{t('strategy.bollingerBands')}</h4>
               <BollingerViz upper={bbUpper} middle={bbMiddle} lower={bbLower} />
             </div>
           </div>
@@ -416,50 +425,50 @@ const StrategyPage = () => {
       {/* ─── BOTTOM: Saved Strategic Presets ─── */}
       <div className="bg-[#111827] rounded-2xl p-6 border border-gray-800/60">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xs tracking-widest text-gray-500 uppercase font-semibold">Saved Strategic Presets</h2>
+          <h2 className="text-xs tracking-widest text-gray-500 uppercase font-semibold">{t('strategy.savedPresets')}</h2>
           <button onClick={() => setShowCreateForm(!showCreateForm)}
             className="bg-gradient-to-r from-blue-600 to-indigo-500 hover:from-blue-500 hover:to-indigo-400 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all flex items-center gap-1.5 shadow-lg shadow-blue-500/10">
-            <FiPlus size={14} /> New Preset
+            <FiPlus size={14} /> {t('strategy.newPreset')}
           </button>
         </div>
 
         {/* Create Form */}
         {showCreateForm && (
           <form onSubmit={handleCreateConfig} className="bg-[#0c101a] rounded-xl p-5 mb-5 border border-gray-700/50">
-            <h3 className="text-white font-medium text-sm mb-4">Create New Strategy Preset</h3>
+            <h3 className="text-white font-medium text-sm mb-4">{t('strategy.createNewPreset')}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <label className={labelClasses}>Symbol</label>
+                <label className={labelClasses}>{t('strategy.symbolLabel')}</label>
                 <select value={newConfig.symbol} onChange={(e) => setNewConfig({ ...newConfig, symbol: e.target.value })} className={selectClasses}>
                   {SYMBOLS.map((s) => <option key={s} value={s}>{SYMBOL_LABELS[s]}</option>)}
                 </select>
               </div>
               <div>
-                <label className={labelClasses}>Strategy</label>
+                <label className={labelClasses}>{t('strategy.strategyLabel')}</label>
                 <select value={newConfig.strategyType} onChange={(e) => setNewConfig({ ...newConfig, strategyType: e.target.value })} className={selectClasses}>
                   {STRATEGIES.map((s) => <option key={s} value={s}>{STRATEGY_LABELS[s]}</option>)}
                 </select>
               </div>
               <div>
-                <label className={labelClasses}>Timeframe</label>
+                <label className={labelClasses}>{t('strategy.timeframe')}</label>
                 <select value={newConfig.timeframe} onChange={(e) => setNewConfig({ ...newConfig, timeframe: e.target.value })} className={selectClasses}>
                   {TIMEFRAMES.map((tf) => <option key={tf} value={tf}>{tf}</option>)}
                 </select>
               </div>
               <div>
-                <label className={labelClasses}>Stop Loss (%)</label>
+                <label className={labelClasses}>{t('strategy.stopLossFormLabel')}</label>
                 <input type="number" step="0.1" value={newConfig.stopLossPercent}
                   onChange={(e) => setNewConfig({ ...newConfig, stopLossPercent: e.target.value })} className={inputClasses} />
               </div>
               <div>
-                <label className={labelClasses}>Take Profit (%)</label>
+                <label className={labelClasses}>{t('strategy.takeProfitFormLabel')}</label>
                 <input type="number" step="0.1" value={newConfig.takeProfitPercent}
                   onChange={(e) => setNewConfig({ ...newConfig, takeProfitPercent: e.target.value })} className={inputClasses} />
               </div>
               <div className="flex items-end">
                 <button type="submit"
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
-                  Create Preset
+                  {t('strategy.createPreset')}
                 </button>
               </div>
             </div>
@@ -495,7 +504,7 @@ const StrategyPage = () => {
 
                   {/* Win Rate */}
                   <div className="text-right mr-2 flex-shrink-0">
-                    <span className="text-[10px] tracking-wider text-gray-500 uppercase block">Win Rate</span>
+                    <span className="text-[10px] tracking-wider text-gray-500 uppercase block">{t('strategy.winRateLabel')}</span>
                     <span className={`text-sm font-bold font-mono ${winRate >= 60 ? 'text-emerald-400' : winRate >= 45 ? 'text-yellow-400' : 'text-red-400'}`}>
                       {winRate.toFixed(1)}%
                     </span>
@@ -503,7 +512,7 @@ const StrategyPage = () => {
 
                   {/* Live Auto-Trade toggle */}
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span className="text-[10px] tracking-wider text-gray-500 uppercase hidden sm:block">Live Auto-Trade</span>
+                    <span className="text-[10px] tracking-wider text-gray-500 uppercase hidden sm:block">{t('strategy.liveAutoTrade')}</span>
                     <button onClick={() => handleToggle(cfg.id)}
                       className={`relative w-10 h-5 rounded-full transition-colors ${cfg.active ? 'bg-emerald-500' : 'bg-gray-700'}`}>
                       <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${cfg.active ? 'translate-x-5' : 'translate-x-0.5'}`} />
@@ -527,7 +536,7 @@ const StrategyPage = () => {
           </div>
         ) : (
           <div className="text-center py-10">
-            <p className="text-gray-600 text-sm">No saved presets yet. Create your first strategy preset to get started.</p>
+            <p className="text-gray-600 text-sm">{t('strategy.noPresetsYet')}</p>
           </div>
         )}
       </div>

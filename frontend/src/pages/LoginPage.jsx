@@ -4,8 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { FiMail, FiLock, FiShield, FiCheck, FiArrowRight, FiGithub } from 'react-icons/fi';
+import { useI18n } from '../i18n';
 
 const LoginPage = () => {
+  const { t } = useI18n();
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -26,10 +28,10 @@ const LoginPage = () => {
       const res = await authAPI.google({ credential: response.credential });
       const { token, username: uname, role } = res.data;
       login(token, { username: uname, role });
-      toast.success('Google login successful!');
+      toast.success(t('login.googleSuccess'));
       navigate('/');
     } catch (err) {
-      const message = err.response?.data?.message || err.response?.data?.error || 'Google login failed';
+      const message = err.response?.data?.message || err.response?.data?.error || t('login.googleFailed');
       setError(message);
       toast.error(message);
     } finally {
@@ -73,13 +75,13 @@ const LoginPage = () => {
 
       const { token, user } = response.data;
       login(token, user || { username });
-      toast.success(isLogin ? 'Login successful!' : 'Registration successful!');
+      toast.success(isLogin ? t('login.loginSuccess') : t('login.registerSuccess'));
       navigate('/');
     } catch (err) {
       const message =
         err.response?.data?.message ||
         err.response?.data?.error ||
-        (isLogin ? 'Invalid credentials' : 'Registration failed');
+        (isLogin ? t('login.invalidCredentials') : t('login.registrationFailed'));
       setError(message);
       toast.error(message);
     } finally {
@@ -126,7 +128,7 @@ const LoginPage = () => {
             className="text-gray-500 text-xs font-medium"
             style={{ letterSpacing: '0.25em' }}
           >
-            CRYPTO ANALYTICS PRECISION
+            {t('login.subtitle')}
           </p>
         </div>
 
@@ -146,7 +148,7 @@ const LoginPage = () => {
                   : 'text-gray-500 hover:text-gray-300'
               }`}
             >
-              LOGIN
+              {t('login.loginTab')}
             </button>
             <button
               type="button"
@@ -160,7 +162,7 @@ const LoginPage = () => {
                   : 'text-gray-500 hover:text-gray-300'
               }`}
             >
-              REGISTER
+              {t('login.registerTab')}
             </button>
           </div>
 
@@ -172,7 +174,7 @@ const LoginPage = () => {
                 if (window.google?.accounts?.id) {
                   window.google.accounts.id.prompt();
                 } else {
-                  toast.info('Google Sign-In loading...');
+                  toast.info(t('login.googleLoading'));
                 }
               }}
               className="flex-1 flex items-center justify-center gap-2 bg-[#1a1f2e] border border-gray-700 rounded-lg py-2.5 text-gray-300 text-sm font-medium hover:border-gray-500 transition-colors"
@@ -180,22 +182,22 @@ const LoginPage = () => {
               <span className="text-base font-bold" style={{ fontFamily: 'sans-serif' }}>
                 G
               </span>
-              Google
+              {t('login.google')}
             </button>
             <button
               type="button"
-              onClick={() => toast.info('Github login coming soon!')}
+              onClick={() => toast.info(t('login.comingSoon'))}
               className="flex-1 flex items-center justify-center gap-2 bg-[#1a1f2e] border border-gray-700 rounded-lg py-2.5 text-gray-300 text-sm font-medium hover:border-gray-500 transition-colors"
             >
               <FiGithub className="text-base" />
-              Github
+              {t('login.github')}
             </button>
           </div>
 
           {/* Divider */}
           <div className="flex items-center gap-3 mb-5">
             <div className="flex-1 h-px bg-gray-700/50" />
-            <span className="text-gray-500 text-xs">or use email</span>
+            <span className="text-gray-500 text-xs">{t('login.orUseEmail')}</span>
             <div className="flex-1 h-px bg-gray-700/50" />
           </div>
 
@@ -210,7 +212,7 @@ const LoginPage = () => {
             {!isLogin && (
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1.5">
-                  Username
+                  {t('login.username')}
                 </label>
                 <div className="relative">
                   <input
@@ -231,7 +233,7 @@ const LoginPage = () => {
             {/* Email Address */}
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1.5">
-                Email Address
+                {t('login.emailAddress')}
               </label>
               <div className="relative">
                 <input
@@ -255,14 +257,14 @@ const LoginPage = () => {
             {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-gray-400">Password</label>
+                <label className="text-sm font-medium text-gray-400">{t('login.password')}</label>
                 {isLogin && (
                   <button
                     type="button"
-                    onClick={() => toast.info('Password reset coming soon!')}
+                    onClick={() => toast.info(t('login.forgotSoon'))}
                     className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
                   >
-                    Forgot?
+                    {t('login.forgot')}
                   </button>
                 )}
               </div>
@@ -295,7 +297,7 @@ const LoginPage = () => {
                 >
                   {staySignedIn && <FiCheck size={10} className="text-white" />}
                 </button>
-                <span className="text-gray-400 text-sm">Stay signed in for 30 days</span>
+                <span className="text-gray-400 text-sm">{t('login.staySignedIn')}</span>
               </div>
             )}
 
@@ -327,7 +329,7 @@ const LoginPage = () => {
                 </svg>
               ) : (
                 <>
-                  {isLogin ? 'ACCESS DASHBOARD' : 'CREATE ACCOUNT'}
+                  {isLogin ? t('login.accessDashboard') : t('login.createAccount')}
                   <FiArrowRight size={16} />
                 </>
               )}
@@ -338,15 +340,15 @@ const LoginPage = () => {
           <div className="flex items-center justify-center gap-4 mt-6 pt-5 border-t border-gray-700/40">
             <div className="flex items-center gap-1.5 text-gray-500 text-xs">
               <FiLock size={12} />
-              <span>256-bit AES</span>
+              <span>{t('login.securityAes')}</span>
             </div>
             <div className="flex items-center gap-1.5 text-gray-500 text-xs">
               <FiShield size={12} />
-              <span>SOC2 Compliant</span>
+              <span>{t('login.securitySoc')}</span>
             </div>
             <div className="flex items-center gap-1.5 text-gray-500 text-xs">
               <FiLock size={12} />
-              <span>Multi-Sig</span>
+              <span>{t('login.securityMultisig')}</span>
             </div>
           </div>
         </div>
@@ -355,31 +357,31 @@ const LoginPage = () => {
       {/* Footer */}
       <div className="z-10 mt-10 text-center">
         <p className="text-gray-600 text-xs mb-2">
-          &copy; 2025 Aiturgan Global Crypto Analytics. All rights reserved.
+          {t('login.copyright')}
         </p>
         <div className="flex items-center justify-center gap-1 text-xs text-gray-500">
           <button
             type="button"
-            onClick={() => toast.info('Coming soon!')}
+            onClick={() => toast.info(t('login.comingSoon'))}
             className="hover:text-gray-300 transition-colors"
           >
-            Privacy Policy
+            {t('login.privacyPolicy')}
           </button>
           <span>&bull;</span>
           <button
             type="button"
-            onClick={() => toast.info('Coming soon!')}
+            onClick={() => toast.info(t('login.comingSoon'))}
             className="hover:text-gray-300 transition-colors"
           >
-            Terms of Service
+            {t('login.termsOfService')}
           </button>
           <span>&bull;</span>
           <button
             type="button"
-            onClick={() => toast.info('Coming soon!')}
+            onClick={() => toast.info(t('login.comingSoon'))}
             className="hover:text-gray-300 transition-colors"
           >
-            Support
+            {t('login.support')}
           </button>
         </div>
       </div>

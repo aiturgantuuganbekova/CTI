@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { I18nProvider, useI18n } from './i18n';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { FiHome, FiActivity, FiBarChart2, FiFileText, FiLogOut, FiBell, FiSettings } from 'react-icons/fi';
+import { FiHome, FiActivity, FiBarChart2, FiFileText, FiLogOut, FiBell, FiSettings, FiGlobe } from 'react-icons/fi';
 import { marketAPI } from './services/api';
 
 import LoginPage from './pages/LoginPage';
@@ -19,16 +20,17 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-const navItems = [
-  { to: '/', icon: FiHome, label: 'Dashboard' },
-  { to: '/strategy', icon: FiActivity, label: 'Strategy' },
-  { to: '/backtest', icon: FiBarChart2, label: 'Backtest' },
-  { to: '/reports', icon: FiFileText, label: 'Reports' },
-  { to: '/settings', icon: FiSettings, label: 'Settings' },
+const navKeys = [
+  { to: '/', icon: FiHome, labelKey: 'nav.dashboard' },
+  { to: '/strategy', icon: FiActivity, labelKey: 'nav.strategy' },
+  { to: '/backtest', icon: FiBarChart2, labelKey: 'nav.backtest' },
+  { to: '/reports', icon: FiFileText, labelKey: 'nav.reports' },
+  { to: '/settings', icon: FiSettings, labelKey: 'nav.settings' },
 ];
 
 const Sidebar = () => {
-  const { logout, user } = useAuth();
+  const { logout } = useAuth();
+  const { t, lang, switchLang } = useI18n();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -46,7 +48,7 @@ const Sidebar = () => {
 
       {/* Navigation */}
       <nav className="px-3 py-4 space-y-1 flex-1">
-        {navItems.map(({ to, icon: Icon, label }) => (
+        {navKeys.map(({ to, icon: Icon, labelKey }) => (
           <NavLink
             key={to}
             to={to}
@@ -60,10 +62,22 @@ const Sidebar = () => {
             }
           >
             <Icon size={17} />
-            <span>{label}</span>
+            <span>{t(labelKey)}</span>
           </NavLink>
         ))}
       </nav>
+
+      {/* Language Switcher */}
+      <div className="px-3 py-2">
+        <button
+          onClick={() => switchLang(lang === 'en' ? 'ru' : 'en')}
+          className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-400
+                     hover:text-blue-400 hover:bg-blue-500/10 transition-colors w-full rounded"
+        >
+          <FiGlobe size={17} />
+          {lang === 'en' ? 'Русский' : 'English'}
+        </button>
+      </div>
 
       {/* Logout */}
       <div className="px-3 py-4 border-t border-gray-800/60">
@@ -73,7 +87,7 @@ const Sidebar = () => {
                      hover:text-red-400 hover:bg-red-500/10 transition-colors w-full rounded"
         >
           <FiLogOut size={17} />
-          Logout
+          {t('nav.logout')}
         </button>
       </div>
     </aside>
@@ -81,6 +95,7 @@ const Sidebar = () => {
 };
 
 const TopBar = () => {
+  const { t } = useI18n();
   const [priceData, setPriceData] = useState({ price: 0, change: 0 });
 
   useEffect(() => {
@@ -131,7 +146,7 @@ const TopBar = () => {
       {/* Right: actions */}
       <div className="flex items-center gap-3">
         <button className="bg-green-600 hover:bg-green-500 text-white text-xs font-semibold px-4 py-2 rounded transition-colors">
-          EXECUTE TRADE
+          {t('topbar.executeTrade')}
         </button>
         <button className="text-gray-400 hover:text-white transition-colors p-2 rounded hover:bg-white/5">
           <FiBell size={17} />
@@ -158,6 +173,7 @@ const AppLayout = ({ children }) => {
 
 const App = () => {
   return (
+    <I18nProvider>
     <AuthProvider>
       <BrowserRouter>
         <ToastContainer
@@ -218,6 +234,7 @@ const App = () => {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </I18nProvider>
   );
 };
 

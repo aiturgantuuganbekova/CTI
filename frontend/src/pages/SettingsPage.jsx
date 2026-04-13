@@ -3,8 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import { userAPI, strategyAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { FiUser, FiMessageSquare, FiActivity, FiSave, FiSend } from 'react-icons/fi';
+import { useI18n } from '../i18n';
 
 const SettingsPage = () => {
+  const { t } = useI18n();
   const { user } = useAuth();
 
   // Telegram state
@@ -53,16 +55,16 @@ const SettingsPage = () => {
   // Save telegram chat ID
   const handleSaveTelegram = async () => {
     if (!chatId.trim()) {
-      toast.warning('Please enter a Chat ID');
+      toast.warning(t('settings.chatIdRequired'));
       return;
     }
     setTelegramLoading(true);
     try {
       await userAPI.updateTelegram(chatId.trim());
       setSavedChatId(chatId.trim());
-      toast.success('Telegram Chat ID saved');
+      toast.success(t('settings.chatIdSaved'));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to save Chat ID');
+      toast.error(err.response?.data?.message || t('settings.chatIdFailed'));
     } finally {
       setTelegramLoading(false);
     }
@@ -71,15 +73,15 @@ const SettingsPage = () => {
   // Send test message
   const handleTestTelegram = async () => {
     if (!savedChatId) {
-      toast.warning('Save a Chat ID first');
+      toast.warning(t('settings.saveChatIdFirst'));
       return;
     }
     setTestLoading(true);
     try {
       await userAPI.testTelegram();
-      toast.success('Test message sent! Check your Telegram.');
+      toast.success(t('settings.testSent'));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to send test message');
+      toast.error(err.response?.data?.message || t('settings.testFailed'));
     } finally {
       setTestLoading(false);
     }
@@ -92,9 +94,9 @@ const SettingsPage = () => {
       setStrategies((prev) =>
         prev.map((s) => (s.id === id ? { ...s, active: !s.active } : s))
       );
-      toast.success('Strategy updated');
+      toast.success(t('settings.strategyUpdated'));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to toggle strategy');
+      toast.error(err.response?.data?.message || t('settings.strategyFailed'));
     }
   };
 
@@ -102,31 +104,31 @@ const SettingsPage = () => {
     <div className="space-y-6 max-w-4xl">
       {/* Page Title */}
       <div>
-        <h1 className="text-xl font-bold text-white">Settings</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage your profile, notifications, and monitoring preferences</p>
+        <h1 className="text-xl font-bold text-white">{t('settings.title')}</h1>
+        <p className="text-sm text-gray-500 mt-1">{t('settings.subtitle')}</p>
       </div>
 
       {/* Profile Section */}
       <div className="bg-[#151923] rounded-xl p-6 border border-gray-800">
         <div className="flex items-center gap-2 mb-5">
           <FiUser className="text-blue-400" size={18} />
-          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">Profile</h2>
+          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">{t('settings.profile')}</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           <div>
-            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Username</label>
+            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">{t('settings.username')}</label>
             <div className="bg-[#1a1f2e] border border-gray-700/60 rounded-lg px-4 py-2.5 text-white text-sm">
               {user?.username || user?.name || '-'}
             </div>
           </div>
           <div>
-            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Email</label>
+            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">{t('settings.email')}</label>
             <div className="bg-[#1a1f2e] border border-gray-700/60 rounded-lg px-4 py-2.5 text-white text-sm">
               {user?.email || '-'}
             </div>
           </div>
           <div>
-            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Role</label>
+            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">{t('settings.role')}</label>
             <div className="bg-[#1a1f2e] border border-gray-700/60 rounded-lg px-4 py-2.5 text-white text-sm">
               <span className="bg-blue-500/15 text-blue-400 border border-blue-500/30 text-xs font-semibold px-2 py-0.5 rounded">
                 {user?.role || 'USER'}
@@ -140,72 +142,71 @@ const SettingsPage = () => {
       <div className="bg-[#151923] rounded-xl p-6 border border-gray-800">
         <div className="flex items-center gap-2 mb-5">
           <FiMessageSquare className="text-emerald-400" size={18} />
-          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">Telegram Notifications</h2>
+          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">{t('settings.telegram')}</h2>
         </div>
         <p className="text-sm text-gray-400 mb-4">
-          Connect your Telegram account to receive real-time signal alerts and trade notifications.
+          {t('settings.telegramDesc')}
         </p>
 
         {/* Setup Instructions */}
         <div className="bg-[#1a1f2e] border border-gray-700/40 rounded-xl p-5 mb-6">
           <h3 className="text-white text-sm font-semibold mb-4 flex items-center gap-2">
             <span className="bg-emerald-500/15 text-emerald-400 text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">?</span>
-            How to set up Telegram alerts
+            {t('settings.howToSetup')}
           </h3>
           <div className="space-y-4">
             <div className="flex gap-3">
               <span className="bg-blue-500/15 text-blue-400 text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">1</span>
               <div>
-                <p className="text-white text-sm font-medium">Open our bot in Telegram</p>
+                <p className="text-white text-sm font-medium">{t('settings.step1Title')}</p>
                 <p className="text-gray-400 text-xs mt-0.5">
-                  Search for <a href="https://t.me/aiturgan_cti_bot" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">@aiturgan_cti_bot</a> in Telegram or click the link.
+                  {t('settings.step1Desc')} <a href="https://t.me/aiturgan_cti_bot" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">{t('settings.step1Bot')}</a> {t('settings.step1Suffix')}
                 </p>
               </div>
             </div>
             <div className="flex gap-3">
               <span className="bg-blue-500/15 text-blue-400 text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">2</span>
               <div>
-                <p className="text-white text-sm font-medium">Start the bot</p>
+                <p className="text-white text-sm font-medium">{t('settings.step2Title')}</p>
                 <p className="text-gray-400 text-xs mt-0.5">
-                  Press <span className="bg-[#151923] text-gray-300 px-1.5 py-0.5 rounded text-[11px] font-mono">Start</span> or send <span className="bg-[#151923] text-gray-300 px-1.5 py-0.5 rounded text-[11px] font-mono">/start</span> to activate the bot.
+                  {t('settings.step2Desc')} <span className="bg-[#151923] text-gray-300 px-1.5 py-0.5 rounded text-[11px] font-mono">{t('settings.step2Action')}</span> {t('settings.step2Or')} <span className="bg-[#151923] text-gray-300 px-1.5 py-0.5 rounded text-[11px] font-mono">{t('settings.step2Command')}</span> {t('settings.step2Suffix')}
                 </p>
               </div>
             </div>
             <div className="flex gap-3">
               <span className="bg-blue-500/15 text-blue-400 text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">3</span>
               <div>
-                <p className="text-white text-sm font-medium">Get your Chat ID</p>
+                <p className="text-white text-sm font-medium">{t('settings.step3Title')}</p>
                 <p className="text-gray-400 text-xs mt-0.5">
-                  Send any message to <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">@userinfobot</a> — it will reply with your numeric Chat ID.
+                  {t('settings.step3Desc')} <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">{t('settings.step3Bot')}</a> {t('settings.step3Suffix')}
                 </p>
               </div>
             </div>
             <div className="flex gap-3">
               <span className="bg-blue-500/15 text-blue-400 text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">4</span>
               <div>
-                <p className="text-white text-sm font-medium">Paste your Chat ID below and save</p>
+                <p className="text-white text-sm font-medium">{t('settings.step4Title')}</p>
                 <p className="text-gray-400 text-xs mt-0.5">
-                  Click <span className="text-emerald-400 font-medium">Send Test</span> to verify it works. You'll receive a test alert in Telegram.
+                  {t('settings.step4Desc')} <span className="text-emerald-400 font-medium">{t('settings.step4Action')}</span> {t('settings.step4Suffix')}
                 </p>
               </div>
             </div>
           </div>
           <div className="mt-4 pt-4 border-t border-gray-700/30">
             <p className="text-gray-500 text-[11px]">
-              You'll receive alerts for <span className="text-green-400 font-medium">BUY</span> and <span className="text-red-400 font-medium">SELL</span> signals only.
-              HOLD signals are not sent to avoid noise. Make sure you have at least one active strategy in the monitoring section below.
+              {t('settings.alertInfo')} <span className="text-green-400 font-medium">{t('settings.alertBuy')}</span> {t('settings.alertAnd')} <span className="text-red-400 font-medium">{t('settings.alertSell')}</span> {t('settings.alertSuffix')}
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[220px]">
-            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Chat ID</label>
+            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">{t('settings.chatId')}</label>
             <input
               type="text"
               value={chatId}
               onChange={(e) => setChatId(e.target.value)}
-              placeholder="Enter your Telegram Chat ID"
+              placeholder={t('settings.chatIdPlaceholder')}
               className="w-full bg-[#1a1f2e] border border-gray-700/60 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500/50 transition-colors placeholder-gray-600"
             />
           </div>
@@ -222,7 +223,7 @@ const SettingsPage = () => {
             ) : (
               <FiSave size={15} />
             )}
-            Save
+            {t('settings.save')}
           </button>
           <button
             onClick={handleTestTelegram}
@@ -237,12 +238,12 @@ const SettingsPage = () => {
             ) : (
               <FiSend size={15} />
             )}
-            Send Test
+            {t('settings.sendTest')}
           </button>
         </div>
         {savedChatId && (
           <p className="text-xs text-gray-500 mt-3">
-            Current Chat ID: <span className="text-gray-400 font-mono">{savedChatId}</span>
+            {t('settings.currentChatId')}: <span className="text-gray-400 font-mono">{savedChatId}</span>
           </p>
         )}
       </div>
@@ -251,10 +252,10 @@ const SettingsPage = () => {
       <div className="bg-[#151923] rounded-xl p-6 border border-gray-800">
         <div className="flex items-center gap-2 mb-5">
           <FiActivity className="text-purple-400" size={18} />
-          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">Strategy Monitoring</h2>
+          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">{t('settings.monitoring')}</h2>
         </div>
         <p className="text-sm text-gray-400 mb-4">
-          Toggle active monitoring for your configured strategies.
+          {t('settings.monitoringDesc')}
         </p>
 
         {strategiesLoading ? (
@@ -301,7 +302,7 @@ const SettingsPage = () => {
           </div>
         ) : (
           <p className="text-gray-600 text-center py-8 text-sm">
-            No strategies configured. Go to the Strategy page to create one.
+            {t('settings.noStrategies')}
           </p>
         )}
       </div>

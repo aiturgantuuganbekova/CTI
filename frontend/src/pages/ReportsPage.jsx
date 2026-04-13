@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { signalAPI, tradeAPI, reportAPI } from '../services/api';
 import { toast } from 'react-toastify';
+import { useI18n } from '../i18n';
 import {
   FiFilter,
   FiTrendingUp,
@@ -42,6 +43,7 @@ const PLACEHOLDER_STRATEGIES = [
 /* ------------------------------------------------------------------ */
 
 const ReportsPage = () => {
+  const { t } = useI18n();
   const [signals, setSignals] = useState([]);
   const [trades, setTrades] = useState([]);
   const [reports, setReports] = useState([]);
@@ -115,11 +117,11 @@ const ReportsPage = () => {
     const s = (side || '').toUpperCase();
     if (s === 'BUY' || s === 'LONG')
       return {
-        label: 'Long',
+        label: t('reports.long'),
         cls: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
       };
     return {
-      label: 'Short',
+      label: t('reports.short'),
       cls: 'bg-red-500/15 text-red-400 border border-red-500/30',
     };
   };
@@ -304,7 +306,7 @@ const ReportsPage = () => {
         {/* Period filter */}
         <button className="bg-[#1a1f2e] border border-gray-700 text-gray-300 text-xs font-medium px-3 py-2 rounded-lg hover:border-gray-500 transition-colors flex items-center gap-1.5">
           <FiClock size={12} />
-          Last 30 Days
+          {t('reports.last30Days')}
         </button>
       </div>
 
@@ -335,7 +337,7 @@ const ReportsPage = () => {
           {/* ===== STRATEGY PERFORMANCE OVERVIEW ===== */}
           <div>
             <h2 className="text-xs uppercase tracking-widest text-gray-500 font-semibold mb-3">
-              Strategy Performance Overview
+              {t('reports.strategyPerformance')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {strategyCards.map((card, idx) => (
@@ -368,7 +370,7 @@ const ReportsPage = () => {
                     </div>
                     <div>
                       <span className="text-gray-500 text-xs block">
-                        Profit Factor
+                        {t('reports.profitFactor')}
                       </span>
                       <span className="text-white font-medium">
                         {card.profitFactor.toFixed(2)}
@@ -388,7 +390,7 @@ const ReportsPage = () => {
                 <div className="flex items-center gap-2">
                   <FiActivity className="text-blue-400" size={16} />
                   <h3 className="text-white font-semibold text-sm">
-                    Signal History
+                    {t('reports.signalHistory')}
                   </h3>
                 </div>
                 <button
@@ -396,7 +398,7 @@ const ReportsPage = () => {
                   className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 font-semibold tracking-wide transition-colors"
                 >
                   <FiDownload size={12} />
-                  EXPORT CSV
+                  {t('reports.exportCSV')}
                 </button>
               </div>
 
@@ -405,10 +407,10 @@ const ReportsPage = () => {
                   <table className="w-full text-xs">
                     <thead className="sticky top-0 bg-[#151923]">
                       <tr className="text-gray-500 border-b border-gray-800 uppercase tracking-wider">
-                        <th className="text-left py-2 px-2 font-medium">Timestamp</th>
-                        <th className="text-left py-2 px-2 font-medium">Signal</th>
-                        <th className="text-right py-2 px-2 font-medium">Price</th>
-                        <th className="text-right py-2 px-2 font-medium">Confidence</th>
+                        <th className="text-left py-2 px-2 font-medium">{t('reports.timestamp')}</th>
+                        <th className="text-left py-2 px-2 font-medium">{t('reports.signal')}</th>
+                        <th className="text-right py-2 px-2 font-medium">{t('reports.price')}</th>
+                        <th className="text-right py-2 px-2 font-medium">{t('reports.confidence')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -460,7 +462,7 @@ const ReportsPage = () => {
                 </div>
               ) : (
                 <p className="text-gray-600 text-center py-10 text-sm">
-                  No signals found
+                  {t('reports.noSignals')}
                 </p>
               )}
             </div>
@@ -471,7 +473,7 @@ const ReportsPage = () => {
                 <div className="flex items-center gap-2">
                   <FiBarChart2 className="text-purple-400" size={16} />
                   <h3 className="text-white font-semibold text-sm">
-                    Trade History
+                    {t('reports.tradeHistory')}
                   </h3>
                 </div>
                 <span className="text-xs font-semibold text-gray-400">
@@ -495,11 +497,11 @@ const ReportsPage = () => {
                   <table className="w-full text-xs">
                     <thead className="sticky top-0 bg-[#151923]">
                       <tr className="text-gray-500 border-b border-gray-800 uppercase tracking-wider">
-                        <th className="text-left py-2 px-2 font-medium">Asset</th>
-                        <th className="text-left py-2 px-2 font-medium">Date</th>
-                        <th className="text-left py-2 px-2 font-medium">Side</th>
-                        <th className="text-right py-2 px-2 font-medium">Size</th>
-                        <th className="text-right py-2 px-2 font-medium">P/L</th>
+                        <th className="text-left py-2 px-2 font-medium">{t('reports.asset')}</th>
+                        <th className="text-left py-2 px-2 font-medium">{t('reports.date')}</th>
+                        <th className="text-left py-2 px-2 font-medium">{t('reports.side')}</th>
+                        <th className="text-right py-2 px-2 font-medium">{t('reports.size')}</th>
+                        <th className="text-right py-2 px-2 font-medium">{t('reports.pl')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -559,7 +561,7 @@ const ReportsPage = () => {
                 </div>
               ) : (
                 <p className="text-gray-600 text-center py-10 text-sm">
-                  No trades found
+                  {t('reports.noTrades')}
                 </p>
               )}
             </div>
@@ -568,7 +570,7 @@ const ReportsPage = () => {
           {/* ===== CONSOLIDATED ANALYTICS ===== */}
           <div className="bg-[#151923] rounded-xl p-6 border border-gray-800">
             <h2 className="text-xs uppercase tracking-widest text-gray-500 font-semibold mb-5">
-              Consolidated Analytics
+              {t('reports.consolidatedAnalytics')}
             </h2>
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -614,18 +616,18 @@ const ReportsPage = () => {
 
                 <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={() => toast.info('Coming soon')}
+                    onClick={() => toast.info(t('reports.comingSoon'))}
                     className="flex items-center gap-2 border border-gray-600 text-gray-300 hover:text-white hover:border-gray-400 text-xs font-semibold px-4 py-2 rounded-lg transition-colors tracking-wide"
                   >
                     <FiDownload size={13} />
-                    DOWNLOAD REPORT
+                    {t('reports.downloadReport')}
                   </button>
                   <button
-                    onClick={() => toast.info('Coming soon')}
+                    onClick={() => toast.info(t('reports.comingSoon'))}
                     className="flex items-center gap-2 border border-gray-600 text-gray-300 hover:text-white hover:border-gray-400 text-xs font-semibold px-4 py-2 rounded-lg transition-colors tracking-wide"
                   >
                     <FiClock size={13} />
-                    SCHEDULE AUTO-REPORT
+                    {t('reports.scheduleReport')}
                   </button>
                 </div>
               </div>
@@ -633,7 +635,7 @@ const ReportsPage = () => {
               {/* Right: mini chart */}
               <div className="lg:col-span-2 flex flex-col">
                 <span className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold mb-2">
-                  Live Growth Projection
+                  {t('reports.growthProjection')}
                 </span>
                 <div className="flex-1 bg-[#1a1f2e] rounded-lg p-3 border border-gray-800 flex items-end">
                   <MiniAreaChart />

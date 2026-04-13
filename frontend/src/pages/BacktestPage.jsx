@@ -3,6 +3,7 @@ import { backtestAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { FiPlay, FiDownload, FiCheckCircle, FiArrowRight } from 'react-icons/fi';
 import Chart from 'react-apexcharts';
+import { useI18n } from '../i18n';
 
 const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT'];
 const STRATEGIES = ['RSI', 'MACD', 'EMA', 'BOLLINGER_BANDS', 'COMBINED'];
@@ -14,6 +15,8 @@ const formatSymbol = (s) => {
 };
 
 const BacktestPage = () => {
+  const { t } = useI18n();
+
   const [form, setForm] = useState({
     symbol: 'BTCUSDT',
     strategyType: 'RSI',
@@ -42,9 +45,9 @@ const BacktestPage = () => {
         initialBalance: parseFloat(form.initialBalance),
       });
       setResults(res.data);
-      toast.success('Backtest completed!');
+      toast.success(t('backtest.completed'));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Backtest failed');
+      toast.error(err.response?.data?.message || t('backtest.failed'));
     } finally {
       setLoading(false);
     }
@@ -186,13 +189,13 @@ const BacktestPage = () => {
         <div className="flex flex-wrap items-end gap-4">
           {/* Pair display */}
           <div className="flex items-center gap-2 mr-2">
-            <span className="text-xs text-gray-500 uppercase tracking-wider">Par:</span>
+            <span className="text-xs text-gray-500 uppercase tracking-wider">{t('backtest.pair')}</span>
             <span className="text-white font-semibold text-sm">{formatSymbol(form.symbol)}</span>
           </div>
 
           {/* Symbol */}
           <div className="min-w-[130px]">
-            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">Symbol</label>
+            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('backtest.symbol')}</label>
             <select
               value={form.symbol}
               onChange={(e) => handleChange('symbol', e.target.value)}
@@ -206,7 +209,7 @@ const BacktestPage = () => {
 
           {/* Strategy */}
           <div className="min-w-[150px]">
-            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">Strategy</label>
+            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('backtest.strategyLabel')}</label>
             <select
               value={form.strategyType}
               onChange={(e) => handleChange('strategyType', e.target.value)}
@@ -220,7 +223,7 @@ const BacktestPage = () => {
 
           {/* Timeframe */}
           <div className="min-w-[100px]">
-            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">Timeframe</label>
+            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('backtest.timeframe')}</label>
             <select
               value={form.timeframe}
               onChange={(e) => handleChange('timeframe', e.target.value)}
@@ -235,7 +238,7 @@ const BacktestPage = () => {
           {/* Date Range */}
           <div>
             <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">
-              Date Range: {formatDateLabel(form.startDate)} - {formatDateLabel(form.endDate)}
+              {t('backtest.dateRange')}: {formatDateLabel(form.startDate)} - {formatDateLabel(form.endDate)}
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -256,7 +259,7 @@ const BacktestPage = () => {
 
           {/* Initial Balance */}
           <div className="min-w-[130px]">
-            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">Initial Balance</label>
+            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">{t('backtest.initialBalance')}</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
               <input
@@ -285,7 +288,7 @@ const BacktestPage = () => {
               ) : (
                 <FiPlay className="w-4 h-4" />
               )}
-              {loading ? 'Running...' : 'Run Backtest'}
+              {loading ? t('backtest.running') : t('backtest.runBacktest')}
             </button>
           </div>
         </div>
@@ -298,8 +301,8 @@ const BacktestPage = () => {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          <p className="text-gray-400">Running backtest simulation...</p>
-          <p className="text-gray-500 text-sm mt-1">This may take a few moments</p>
+          <p className="text-gray-400">{t('backtest.runningSimulation')}</p>
+          <p className="text-gray-500 text-sm mt-1">{t('backtest.simulationWait')}</p>
         </div>
       )}
 
@@ -310,34 +313,34 @@ const BacktestPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* ROI */}
             <div className="bg-[#151923] rounded-xl p-5 border border-gray-800">
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">ROI %</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">{t('backtest.roi')}</p>
               <p className={`text-2xl font-bold ${parseFloat(roi) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {parseFloat(roi) >= 0 ? '+' : ''}{parseFloat(roi).toFixed(2)}%
               </p>
-              <p className="text-[11px] text-gray-600 mt-1.5">+ $ Benchmark: {(parseFloat(roi) * 0.19).toFixed(2)}</p>
+              <p className="text-[11px] text-gray-600 mt-1.5">+ $ {t('backtest.benchmark')}: {(parseFloat(roi) * 0.19).toFixed(2)}</p>
             </div>
 
             {/* Win Rate */}
             <div className="bg-[#151923] rounded-xl p-5 border border-gray-800">
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Win Rate</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">{t('backtest.winRate')}</p>
               <p className="text-2xl font-bold text-white">
                 {parseFloat(winRate).toFixed(1)}%
               </p>
-              <p className="text-[11px] text-gray-600 mt-1.5">Above 50% Threshold</p>
+              <p className="text-[11px] text-gray-600 mt-1.5">{t('backtest.aboveThreshold')}</p>
             </div>
 
             {/* Total P/L */}
             <div className="bg-[#151923] rounded-xl p-5 border border-gray-800">
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Total P/L</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">{t('backtest.totalPL')}</p>
               <p className={`text-2xl font-bold ${parseFloat(totalPnl) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {parseFloat(totalPnl) >= 0 ? '+' : ''}${Math.abs(parseFloat(totalPnl)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="text-[11px] text-gray-600 mt-1.5">Gross P/L Summary</p>
+              <p className="text-[11px] text-gray-600 mt-1.5">{t('backtest.grossPL')}</p>
             </div>
 
             {/* Max Drawdown */}
             <div className="bg-[#151923] rounded-xl p-5 border border-gray-800">
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Max Drawdown</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">{t('backtest.maxDrawdown')}</p>
               <p className="text-2xl font-bold text-red-400">
                 -{Math.abs(parseFloat(maxDrawdown)).toFixed(2)}%
               </p>
@@ -346,7 +349,7 @@ const BacktestPage = () => {
 
             {/* Total Trades */}
             <div className="bg-[#151923] rounded-xl p-5 border border-gray-800">
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Total Trades</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">{t('backtest.totalTrades')}</p>
               <p className="text-2xl font-bold text-white">{totalTrades}</p>
               <p className="text-[11px] text-gray-600 mt-1.5">Avg. Duration: {results?.avgDuration ?? '8.2h'}</p>
             </div>

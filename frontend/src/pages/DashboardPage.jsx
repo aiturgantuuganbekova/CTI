@@ -3,11 +3,13 @@ import Chart from 'react-apexcharts';
 import { marketAPI, signalAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { FiCheckCircle, FiTarget, FiRefreshCw, FiBarChart2, FiTrendingUp } from 'react-icons/fi';
+import { useI18n } from '../i18n';
 
 const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT'];
 const TIMEFRAMES = ['5m', '15m', '30m', '1h', '4h', '1d'];
 
 const DashboardPage = () => {
+  const { t } = useI18n();
   const [symbol, setSymbol] = useState('BTCUSDT');
   const [timeframe, setTimeframe] = useState('1h');
   const [price, setPrice] = useState(null);
@@ -100,14 +102,14 @@ const DashboardPage = () => {
 
   const signalTypeBadge = (type) => {
     if (!type) return <span className="text-gray-400">-</span>;
-    const t = type.toUpperCase();
-    if (t === 'BUY')
+    const st = type.toUpperCase();
+    if (st === 'BUY')
       return (
         <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
           BUY
         </span>
       );
-    if (t === 'SELL')
+    if (st === 'SELL')
       return (
         <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-red-500 text-white">
           SELL
@@ -139,34 +141,34 @@ const DashboardPage = () => {
   const metricCards = [
     {
       icon: <FiCheckCircle className="text-green-400" size={18} />,
-      label: 'ROI',
+      label: t('dashboard.roi'),
       value: '12.4%',
       valueColor: 'text-green-400',
-      sub: '+2.3% from last cycle',
+      sub: '+2.3% ' + t('dashboard.roiSubtitle'),
       iconBg: 'bg-green-500/10',
     },
     {
       icon: <FiTarget className="text-blue-400" size={18} />,
-      label: 'WIN RATE',
+      label: t('dashboard.winRate'),
       value: '68%',
       valueColor: 'text-white',
-      sub: 'Over 142 total sessions',
+      sub: t('common.over') + ' 142 ' + t('dashboard.winRateSubtitle'),
       iconBg: 'bg-blue-500/10',
     },
     {
       icon: <FiRefreshCw className="text-purple-400" size={18} />,
-      label: 'ACTIVE SIGNALS',
+      label: t('dashboard.activeSignals'),
       value: String(signals.length || 3),
       valueColor: 'text-white',
-      sub: 'Real-time alerts active',
+      sub: t('dashboard.activeSignalsSubtitle'),
       iconBg: 'bg-purple-500/10',
     },
     {
       icon: <FiBarChart2 className="text-orange-400" size={18} />,
-      label: 'TOTAL TRADES',
+      label: t('dashboard.totalTrades'),
       value: '142',
       valueColor: 'text-white',
-      sub: 'All-time execution count',
+      sub: t('dashboard.totalTradesSubtitle'),
       iconBg: 'bg-orange-500/10',
     },
   ];
@@ -244,7 +246,7 @@ const DashboardPage = () => {
           <Chart options={chartOptions} series={chartSeries} type="candlestick" height={450} />
         ) : (
           <div className="flex items-center justify-center h-[450px] text-gray-500">
-            No chart data available
+            {t('dashboard.noChartData')}
           </div>
         )}
       </div>
@@ -252,9 +254,9 @@ const DashboardPage = () => {
       {/* Recent Signals Table */}
       <div className="bg-[#151923] rounded-xl p-5 border border-gray-800">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white tracking-wide">RECENT SIGNALS</h2>
+          <h2 className="text-lg font-semibold text-white tracking-wide">{t('dashboard.recentSignals')}</h2>
           <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-            Export Data
+            {t('dashboard.exportData')}
           </button>
         </div>
         {signals.length > 0 ? (
@@ -262,12 +264,12 @@ const DashboardPage = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-                  <th className="text-left py-3 px-3">Time</th>
-                  <th className="text-left py-3 px-3">Symbol</th>
-                  <th className="text-left py-3 px-3">Strategy</th>
-                  <th className="text-left py-3 px-3">Signal Type</th>
-                  <th className="text-left py-3 px-3">Price</th>
-                  <th className="text-left py-3 px-3">Confidence</th>
+                  <th className="text-left py-3 px-3">{t('dashboard.time')}</th>
+                  <th className="text-left py-3 px-3">{t('dashboard.symbol')}</th>
+                  <th className="text-left py-3 px-3">{t('dashboard.strategyCol')}</th>
+                  <th className="text-left py-3 px-3">{t('dashboard.signalType')}</th>
+                  <th className="text-left py-3 px-3">{t('dashboard.price')}</th>
+                  <th className="text-left py-3 px-3">{t('dashboard.confidence')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -296,7 +298,7 @@ const DashboardPage = () => {
             </table>
           </div>
         ) : (
-          <p className="text-gray-500 text-center py-8">No recent signals</p>
+          <p className="text-gray-500 text-center py-8">{t('dashboard.noSignals')}</p>
         )}
       </div>
     </div>
