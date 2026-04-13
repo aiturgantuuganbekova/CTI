@@ -322,7 +322,7 @@ const StrategyPage = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-400">{t('strategy.volatilityIndex')}</span>
-                <span className={`text-sm font-medium ${volatilityColor}`}>{volatilityLabel}</span>
+                <span className={`text-sm font-medium ${volatilityColor}`}>{volatilityLabel === 'High' ? t('strategy.high') : volatilityLabel === 'Medium' ? t('strategy.medium') : t('strategy.low')}</span>
               </div>
             </div>
           </div>

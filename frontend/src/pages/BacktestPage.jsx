@@ -344,14 +344,14 @@ const BacktestPage = () => {
               <p className="text-2xl font-bold text-red-400">
                 -{Math.abs(parseFloat(maxDrawdown)).toFixed(2)}%
               </p>
-              <p className="text-[11px] text-gray-600 mt-1.5">Max Portfolio Contraction</p>
+              <p className="text-[11px] text-gray-600 mt-1.5">{t('backtest.maxContraction')}</p>
             </div>
 
             {/* Total Trades */}
             <div className="bg-[#151923] rounded-xl p-5 border border-gray-800">
               <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">{t('backtest.totalTrades')}</p>
               <p className="text-2xl font-bold text-white">{totalTrades}</p>
-              <p className="text-[11px] text-gray-600 mt-1.5">Avg. Duration: {results?.avgDuration ?? '8.2h'}</p>
+              <p className="text-[11px] text-gray-600 mt-1.5">{t('backtest.avgDuration')}: {results?.avgDuration ?? '8.2h'}</p>
             </div>
           </div>
 
@@ -360,7 +360,7 @@ const BacktestPage = () => {
             {/* LEFT: Equity Curve */}
             <div className="lg:col-span-3 bg-[#151923] rounded-xl p-5 border border-gray-800">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-white">Equity Curve</h3>
+                <h3 className="text-sm font-semibold text-white">{t('backtest.equityCurve')}</h3>
                 <div className="flex bg-[#1a1f2e] rounded-lg p-0.5">
                   <button
                     onClick={() => setEquityTab('EQUITY')}
@@ -370,7 +370,7 @@ const BacktestPage = () => {
                         : 'text-gray-500 hover:text-gray-300'
                     }`}
                   >
-                    EQUITY
+                    {t('backtest.equity')}
                   </button>
                   <button
                     onClick={() => setEquityTab('DRAWDOWN')}
@@ -380,7 +380,7 @@ const BacktestPage = () => {
                         : 'text-gray-500 hover:text-gray-300'
                     }`}
                   >
-                    DRAWDOWN
+                    {t('backtest.drawdown')}
                   </button>
                 </div>
               </div>
@@ -394,31 +394,31 @@ const BacktestPage = () => {
 
             {/* RIGHT: Performance Stats */}
             <div className="lg:col-span-2 bg-[#151923] rounded-xl p-5 border border-gray-800">
-              <h3 className="text-sm font-semibold text-white mb-5">Performance Stats</h3>
+              <h3 className="text-sm font-semibold text-white mb-5">{t('backtest.performanceStats')}</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">Profit Factor</span>
+                  <span className="text-sm text-gray-400">{t('backtest.profitFactor')}</span>
                   <span className="text-sm text-white font-medium">{parseFloat(profitFactor).toFixed(2) || '2.42'}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">Avg. Win</span>
+                  <span className="text-sm text-gray-400">{t('backtest.avgWin')}</span>
                   <span className="text-sm text-emerald-400 font-medium">
                     +${Math.abs(parseFloat(avgWin)).toFixed(2) || '183.40'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">Avg. Loss</span>
+                  <span className="text-sm text-gray-400">{t('backtest.avgLoss')}</span>
                   <span className="text-sm text-red-400 font-medium">
                     -${Math.abs(parseFloat(avgLoss)).toFixed(2) || '76.20'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">Sharpe Ratio</span>
+                  <span className="text-sm text-gray-400">{t('backtest.sharpeRatio')}</span>
                   <span className="text-sm text-white font-medium">{parseFloat(sharpeRatio).toFixed(2) || '1.84'}</span>
                 </div>
 
                 <div className="border-t border-gray-800 pt-4 mt-4">
-                  <h4 className="text-xs text-gray-500 uppercase tracking-wider mb-3">Asset Exposure</h4>
+                  <h4 className="text-xs text-gray-500 uppercase tracking-wider mb-3">{t('backtest.assetExposure')}</h4>
                   <div className="mb-2">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-sm text-gray-300">84% {form.symbol.replace('USDT', '')} Usage</span>
@@ -427,7 +427,7 @@ const BacktestPage = () => {
                       <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '84%' }} />
                     </div>
                   </div>
-                  <p className="text-[11px] text-gray-600 mt-2">Optimal leverage: 1x</p>
+                  <p className="text-[11px] text-gray-600 mt-2">{t('backtest.optimalLeverage')}</p>
                 </div>
               </div>
             </div>
@@ -436,14 +436,14 @@ const BacktestPage = () => {
           {/* BOTTOM SECTION - Trade History */}
           <div className="bg-[#151923] rounded-xl p-5 border border-gray-800">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-white">Trade History</h3>
+              <h3 className="text-sm font-semibold text-white">{t('backtest.tradeHistory')}</h3>
               <button
                 onClick={handleExportCSV}
                 disabled={!trades.length}
                 className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors disabled:opacity-40 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-700/50"
               >
                 <FiDownload className="w-3.5 h-3.5" />
-                EXPORT CSV
+                {t('backtest.exportCSV')}
               </button>
             </div>
             {trades.length > 0 ? (
@@ -452,13 +452,13 @@ const BacktestPage = () => {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-[10px] text-gray-500 uppercase tracking-wider border-b border-gray-800">
-                        <th className="text-left py-3 px-3">Type</th>
-                        <th className="text-left py-3 px-3">Entry Price</th>
-                        <th className="text-left py-3 px-3">Exit Price</th>
-                        <th className="text-left py-3 px-3">P/L $</th>
-                        <th className="text-left py-3 px-3">Open Date</th>
-                        <th className="text-left py-3 px-3">Close Date</th>
-                        <th className="text-center py-3 px-3">Status</th>
+                        <th className="text-left py-3 px-3">{t('backtest.type')}</th>
+                        <th className="text-left py-3 px-3">{t('backtest.entryPrice')}</th>
+                        <th className="text-left py-3 px-3">{t('backtest.exitPrice')}</th>
+                        <th className="text-left py-3 px-3">{t('backtest.pl')}</th>
+                        <th className="text-left py-3 px-3">{t('backtest.openDate')}</th>
+                        <th className="text-left py-3 px-3">{t('backtest.closeDate')}</th>
+                        <th className="text-center py-3 px-3">{t('backtest.status')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -514,13 +514,13 @@ const BacktestPage = () => {
                     onClick={() => setVisibleTrades((v) => v + 10)}
                     className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors mt-4 mx-auto"
                   >
-                    VIEW MORE TRADES
+                    {t('backtest.viewMore')}
                     <FiArrowRight className="w-3.5 h-3.5" />
                   </button>
                 )}
               </>
             ) : (
-              <p className="text-gray-500 text-center py-8 text-sm">No trades in this backtest</p>
+              <p className="text-gray-500 text-center py-8 text-sm">{t('backtest.noTrades')}</p>
             )}
           </div>
         </>
