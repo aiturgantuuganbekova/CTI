@@ -41,6 +41,8 @@ const LoginPage = () => {
 
   googleCallbackRef.current = handleGoogleCallback;
 
+  const googleBtnRef = useRef(null);
+
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
@@ -49,14 +51,27 @@ const LoginPage = () => {
     document.head.appendChild(script);
 
     script.onload = () => {
-      window.google.accounts.id.initialize({
-        client_id: '509566552309-8huhumpmchand8gsnv5aocgsjsas59hn.apps.googleusercontent.com',
-        callback: (resp) => googleCallbackRef.current(resp),
-      });
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.initialize({
+          client_id: '509566552309-8huhumpmchand8gsnv5aocgsjsas59hn.apps.googleusercontent.com',
+          callback: (resp) => googleCallbackRef.current(resp),
+          ux_mode: 'popup',
+        });
+        if (googleBtnRef.current) {
+          window.google.accounts.id.renderButton(googleBtnRef.current, {
+            type: 'standard',
+            theme: 'filled_black',
+            size: 'large',
+            width: '100%',
+            text: 'continue_with',
+            shape: 'rectangular',
+          });
+        }
+      }
     };
 
     return () => {
-      document.head.removeChild(script);
+      if (script.parentNode) script.parentNode.removeChild(script);
     };
   }, []);
 
@@ -166,32 +181,9 @@ const LoginPage = () => {
             </button>
           </div>
 
-          {/* OAuth buttons */}
-          <div className="flex gap-3 mb-5">
-            <button
-              type="button"
-              onClick={() => {
-                if (window.google?.accounts?.id) {
-                  window.google.accounts.id.prompt();
-                } else {
-                  toast.info(t('login.googleLoading'));
-                }
-              }}
-              className="flex-1 flex items-center justify-center gap-2 bg-[#1a1f2e] border border-gray-700 rounded-lg py-2.5 text-gray-300 text-sm font-medium hover:border-gray-500 transition-colors"
-            >
-              <span className="text-base font-bold" style={{ fontFamily: 'sans-serif' }}>
-                G
-              </span>
-              {t('login.google')}
-            </button>
-            <button
-              type="button"
-              onClick={() => toast.info(t('login.comingSoon'))}
-              className="flex-1 flex items-center justify-center gap-2 bg-[#1a1f2e] border border-gray-700 rounded-lg py-2.5 text-gray-300 text-sm font-medium hover:border-gray-500 transition-colors"
-            >
-              <FiGithub className="text-base" />
-              {t('login.github')}
-            </button>
+          {/* Google Sign-In button */}
+          <div className="mb-5">
+            <div ref={googleBtnRef} className="flex justify-center" />
           </div>
 
           {/* Divider */}
