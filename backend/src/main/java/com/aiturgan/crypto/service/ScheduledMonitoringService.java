@@ -10,12 +10,14 @@ import com.aiturgan.crypto.model.enums.TradeStatus;
 import com.aiturgan.crypto.repository.SignalRepository;
 import com.aiturgan.crypto.repository.StrategyConfigRepository;
 import com.aiturgan.crypto.repository.TradeRepository;
+import com.aiturgan.crypto.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,6 +38,8 @@ public class ScheduledMonitoringService {
     private final BinanceService binanceService;
     private final StrategyEngine strategyEngine;
     private final TelegramService telegramService;
+    private final UserRepository userRepository;
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${app.monitoring.enabled:true}")
     private boolean monitoringEnabled;
@@ -85,21 +89,23 @@ public class ScheduledMonitoringService {
         return monitoringEnabled && currentTask != null && !currentTask.isCancelled();
     }
 
-    private void monitorActiveStrategies() {
+    public void monitorActiveStrategies() {
         log.info("Starting scheduled monitoring cycle...");
         try {
-            List<StrategyConfig> activeConfigs = strategyConfigRepository.findByActiveTrue();
-            log.info("Found {} active strategy configs", activeConfigs.size());
+            transactionTemplate.executeWithoutResult(status -> {
+                List<StrategyConfig> activeConfigs = strategyConfigRepository.findByActiveTrue();
+                log.info("Found {} active strategy configs", activeConfigs.size());
 
-            for (StrategyConfig config : activeConfigs) {
-                try {
-                    processStrategyConfig(config);
-                } catch (Exception e) {
-                    log.error("Error processing strategy config id={}: {}", config.getId(), e.getMessage());
+                for (StrategyConfig config : activeConfigs) {
+                    try {
+                        processStrategyConfig(config);
+                    } catch (Exception e) {
+                        log.error("Error processing strategy config id={}: {}", config.getId(), e.getMessage());
+                    }
                 }
-            }
 
-            checkOpenTrades();
+                checkOpenTrades();
+            });
         } catch (Exception e) {
             log.error("Error during scheduled monitoring: {}", e.getMessage());
         }
@@ -107,11 +113,13 @@ public class ScheduledMonitoringService {
     }
 
     private void processStrategyConfig(StrategyConfig config) {
-        User user = config.getUser();
+        // Load user fresh from DB to get telegram_chat_id
+        User user = userRepository.findById(config.getUser().getId()).orElse(config.getUser());
         String symbol = config.getSymbol();
         String timeframe = config.getTimeframe();
 
-        log.debug("Processing: strategy={}, symbol={}, timeframe={}", config.getStrategyType(), symbol, timeframe);
+        log.debug("Processing: strategy={}, symbol={}, timeframe={}, user={}, chatId={}",
+                config.getStrategyType(), symbol, timeframe, user.getUsername(), user.getTelegramChatId());
 
         List<Candle> candles = binanceService.getKlines(symbol, timeframe, 100);
         SignalType signalType = strategyEngine.executeStrategy(config.getStrategyType(), candles);
