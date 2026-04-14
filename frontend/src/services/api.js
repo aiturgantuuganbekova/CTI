@@ -82,4 +82,11 @@ export const userAPI = {
   testTelegram: () => api.post('/user/telegram/test'),
 };
 
+export const monitoringAPI = {
+  getStatus: () => api.get('/monitoring/status'),
+  start: (intervalMs) => api.post('/monitoring/start', null, { params: { intervalMs } }),
+  stop: () => api.post('/monitoring/stop'),
+  updateInterval: (intervalMs) => api.put('/monitoring/interval', null, { params: { intervalMs } }),
+};
+
 export default api;

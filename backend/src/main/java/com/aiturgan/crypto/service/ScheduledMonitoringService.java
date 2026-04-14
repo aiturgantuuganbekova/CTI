@@ -10,14 +10,20 @@ import com.aiturgan.crypto.model.enums.TradeStatus;
 import com.aiturgan.crypto.repository.SignalRepository;
 import com.aiturgan.crypto.repository.StrategyConfigRepository;
 import com.aiturgan.crypto.repository.TradeRepository;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -31,17 +37,56 @@ public class ScheduledMonitoringService {
     private final StrategyEngine strategyEngine;
     private final TelegramService telegramService;
 
-    @Value("${app.monitoring.enabled:false}")
+    @Value("${app.monitoring.enabled:true}")
     private boolean monitoringEnabled;
 
-    @Scheduled(fixedDelayString = "${app.monitoring.interval:60000}")
-    public void monitorActiveStrategies() {
-        if (!monitoringEnabled) {
-            return;
+    @Value("${app.monitoring.interval:60000}")
+    private long intervalMs;
+
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledFuture<?> currentTask;
+
+    @PostConstruct
+    public void init() {
+        if (monitoringEnabled) {
+            startMonitoring(intervalMs);
         }
+    }
 
-        log.info("Starting scheduled monitoring of active strategies...");
+    @PreDestroy
+    public void destroy() {
+        scheduler.shutdownNow();
+    }
 
+    public synchronized void startMonitoring(long newIntervalMs) {
+        if (currentTask != null) {
+            currentTask.cancel(false);
+        }
+        this.intervalMs = newIntervalMs;
+        this.monitoringEnabled = true;
+        currentTask = scheduler.scheduleWithFixedDelay(this::monitorActiveStrategies, 5000, newIntervalMs, TimeUnit.MILLISECONDS);
+        log.info("Monitoring started with interval: {}ms ({}s)", newIntervalMs, newIntervalMs / 1000);
+    }
+
+    public synchronized void stopMonitoring() {
+        if (currentTask != null) {
+            currentTask.cancel(false);
+            currentTask = null;
+        }
+        this.monitoringEnabled = false;
+        log.info("Monitoring stopped");
+    }
+
+    public long getIntervalMs() {
+        return intervalMs;
+    }
+
+    public boolean isRunning() {
+        return monitoringEnabled && currentTask != null && !currentTask.isCancelled();
+    }
+
+    private void monitorActiveStrategies() {
+        log.info("Starting scheduled monitoring cycle...");
         try {
             List<StrategyConfig> activeConfigs = strategyConfigRepository.findByActiveTrue();
             log.info("Found {} active strategy configs", activeConfigs.size());
@@ -50,17 +95,14 @@ public class ScheduledMonitoringService {
                 try {
                     processStrategyConfig(config);
                 } catch (Exception e) {
-                    log.error("Error processing strategy config id={}: {}", config.getId(), e.getMessage(), e);
+                    log.error("Error processing strategy config id={}: {}", config.getId(), e.getMessage());
                 }
             }
 
-            // Check open trades for stop-loss / take-profit
             checkOpenTrades();
-
         } catch (Exception e) {
-            log.error("Error during scheduled monitoring: {}", e.getMessage(), e);
+            log.error("Error during scheduled monitoring: {}", e.getMessage());
         }
-
         log.info("Scheduled monitoring cycle completed.");
     }
 
@@ -69,36 +111,30 @@ public class ScheduledMonitoringService {
         String symbol = config.getSymbol();
         String timeframe = config.getTimeframe();
 
-        log.debug("Processing strategy config: id={}, strategy={}, symbol={}, timeframe={}",
-                config.getId(), config.getStrategyType(), symbol, timeframe);
+        log.debug("Processing: strategy={}, symbol={}, timeframe={}", config.getStrategyType(), symbol, timeframe);
 
-        // Fetch candles from Binance
         List<Candle> candles = binanceService.getKlines(symbol, timeframe, 100);
-
-        // Run strategy
         SignalType signalType = strategyEngine.executeStrategy(config.getStrategyType(), candles);
+        double currentPrice = candles.get(candles.size() - 1).getClose();
 
+        // Save signal for ALL types
+        Signal signal = Signal.builder()
+                .symbol(symbol)
+                .signalType(signalType)
+                .strategyType(config.getStrategyType())
+                .price(currentPrice)
+                .timeframe(timeframe)
+                .confidence(75.0)
+                .message(String.format("[Auto] %s | %s | $%.2f | %s",
+                        config.getStrategyType(), signalType, currentPrice, timeframe))
+                .user(user)
+                .build();
+
+        signal = signalRepository.save(signal);
+        log.info("Signal: {} {} ${} ({})", signalType, symbol, currentPrice, config.getStrategyType());
+
+        // Open virtual trade only for BUY/SELL
         if (signalType == SignalType.BUY || signalType == SignalType.SELL) {
-            double currentPrice = candles.get(candles.size() - 1).getClose();
-
-            // Save signal
-            Signal signal = Signal.builder()
-                    .symbol(symbol)
-                    .signalType(signalType)
-                    .strategyType(config.getStrategyType())
-                    .price(currentPrice)
-                    .timeframe(timeframe)
-                    .confidence(75.0)
-                    .message(String.format("[Auto] Strategy: %s | Signal: %s | Price: %.2f",
-                            config.getStrategyType(), signalType, currentPrice))
-                    .user(user)
-                    .build();
-
-            signal = signalRepository.save(signal);
-            log.info("Auto signal saved: id={}, type={}, symbol={}, price={}",
-                    signal.getId(), signalType, symbol, currentPrice);
-
-            // Open virtual trade
             Trade trade = Trade.builder()
                     .symbol(symbol)
                     .entryPrice(currentPrice)
@@ -108,26 +144,23 @@ public class ScheduledMonitoringService {
                     .signalType(signalType)
                     .user(user)
                     .build();
+            tradeRepository.save(trade);
+            log.info("Trade opened: {} {} @ ${}", signalType, symbol, currentPrice);
+        }
 
-            trade = tradeRepository.save(trade);
-            log.info("Auto trade opened: id={}, symbol={}, entryPrice={}", trade.getId(), symbol, currentPrice);
-
-            // Send Telegram notification if user has chatId
-            if (user.getTelegramChatId() != null && !user.getTelegramChatId().isBlank()) {
-                telegramService.sendSignalNotification(user.getTelegramChatId(), signal);
-            }
+        // Send Telegram for ALL signals
+        if (user.getTelegramChatId() != null && !user.getTelegramChatId().isBlank()) {
+            telegramService.sendSignalNotification(user.getTelegramChatId(), signal);
         }
     }
 
     private void checkOpenTrades() {
         List<Trade> openTrades = tradeRepository.findByStatus(TradeStatus.OPEN);
-        log.debug("Checking {} open trades for stop-loss/take-profit", openTrades.size());
-
         for (Trade trade : openTrades) {
             try {
                 checkTradeStopLossTakeProfit(trade);
             } catch (Exception e) {
-                log.error("Error checking trade id={}: {}", trade.getId(), e.getMessage(), e);
+                log.error("Error checking trade id={}: {}", trade.getId(), e.getMessage());
             }
         }
     }
@@ -136,11 +169,9 @@ public class ScheduledMonitoringService {
         double currentPrice = binanceService.getCurrentPrice(trade.getSymbol());
         double entryPrice = trade.getEntryPrice();
 
-        // Find the strategy config for stop-loss/take-profit percentages
         Double stopLossPercent = 2.0;
         Double takeProfitPercent = 3.0;
 
-        // Try to get config-specific values
         User user = trade.getUser();
         List<StrategyConfig> configs = strategyConfigRepository.findByUserId(user.getId());
         for (StrategyConfig config : configs) {
@@ -171,7 +202,6 @@ public class ScheduledMonitoringService {
             double profitLoss = (currentPrice - entryPrice) * trade.getQuantity();
             double profitLossPercent = ((currentPrice - entryPrice) / entryPrice) * 100.0;
 
-            // For SELL signals, profit is inverted (short position)
             if (trade.getSignalType() == SignalType.SELL) {
                 profitLoss = -profitLoss;
                 profitLossPercent = -profitLossPercent;
@@ -182,14 +212,12 @@ public class ScheduledMonitoringService {
             trade.setProfitLossPercent(profitLossPercent);
             trade.setStatus(TradeStatus.CLOSED);
             trade.setClosedAt(LocalDateTime.now());
-
             tradeRepository.save(trade);
-            log.info("Trade auto-closed [{}]: id={}, entryPrice={}, exitPrice={}, P/L={}, P/L%={}",
-                    reason, trade.getId(), entryPrice, currentPrice, profitLoss, profitLossPercent);
 
-            // Send Telegram notification
+            log.info("Trade closed [{}]: {} P/L=${}", reason, trade.getSymbol(), profitLoss);
+
             if (user.getTelegramChatId() != null && !user.getTelegramChatId().isBlank()) {
-                String message = String.format("[%s] Trade closed: %s | Entry: %.2f | Exit: %.2f | P/L: %.2f (%.2f%%)",
+                String message = String.format("[%s] %s closed | Entry: $%.2f | Exit: $%.2f | P/L: $%.2f (%.2f%%)",
                         reason, trade.getSymbol(), entryPrice, currentPrice, profitLoss, profitLossPercent);
                 telegramService.sendMessage(user.getTelegramChatId(), message);
             }

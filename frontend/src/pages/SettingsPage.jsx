@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { userAPI, strategyAPI } from '../services/api';
+import { userAPI, strategyAPI, monitoringAPI } from '../services/api';
 import { toast } from 'react-toastify';
-import { FiUser, FiMessageSquare, FiActivity, FiSave, FiSend } from 'react-icons/fi';
+import { FiUser, FiMessageSquare, FiActivity, FiSave, FiSend, FiClock, FiPlay, FiSquare } from 'react-icons/fi';
 import { useI18n } from '../i18n';
 
 const SettingsPage = () => {
@@ -14,6 +14,11 @@ const SettingsPage = () => {
   const [savedChatId, setSavedChatId] = useState('');
   const [telegramLoading, setTelegramLoading] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
+
+  // Monitoring interval state
+  const [monitoringRunning, setMonitoringRunning] = useState(false);
+  const [intervalSeconds, setIntervalSeconds] = useState(60);
+  const [monitoringLoading, setMonitoringLoading] = useState(false);
 
   // Strategy monitoring state
   const [strategies, setStrategies] = useState([]);
@@ -32,6 +37,20 @@ const SettingsPage = () => {
       }
     };
     fetchTelegram();
+  }, []);
+
+  // Load monitoring status
+  useEffect(() => {
+    const fetchMonitoring = async () => {
+      try {
+        const res = await monitoringAPI.getStatus();
+        setMonitoringRunning(res.data.running);
+        setIntervalSeconds(res.data.intervalSeconds || 60);
+      } catch {
+        // silently fail
+      }
+    };
+    fetchMonitoring();
   }, []);
 
   // Load strategies
@@ -97,6 +116,45 @@ const SettingsPage = () => {
       toast.success(t('settings.strategyUpdated'));
     } catch (err) {
       toast.error(err.response?.data?.message || t('settings.strategyFailed'));
+    }
+  };
+
+  const handleStartMonitoring = async () => {
+    setMonitoringLoading(true);
+    try {
+      await monitoringAPI.start(intervalSeconds * 1000);
+      setMonitoringRunning(true);
+      toast.success(`Monitoring started (every ${intervalSeconds}s)`);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to start monitoring');
+    } finally {
+      setMonitoringLoading(false);
+    }
+  };
+
+  const handleStopMonitoring = async () => {
+    setMonitoringLoading(true);
+    try {
+      await monitoringAPI.stop();
+      setMonitoringRunning(false);
+      toast.success('Monitoring stopped');
+    } catch {
+      toast.error('Failed to stop monitoring');
+    } finally {
+      setMonitoringLoading(false);
+    }
+  };
+
+  const handleUpdateInterval = async () => {
+    setMonitoringLoading(true);
+    try {
+      await monitoringAPI.updateInterval(intervalSeconds * 1000);
+      setMonitoringRunning(true);
+      toast.success(`Interval updated to ${intervalSeconds}s`);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update interval');
+    } finally {
+      setMonitoringLoading(false);
     }
   };
 
@@ -248,7 +306,85 @@ const SettingsPage = () => {
         )}
       </div>
 
-      {/* Monitoring Section */}
+      {/* Monitoring Interval Section */}
+      <div className="bg-[#151923] rounded-xl p-6 border border-gray-800">
+        <div className="flex items-center gap-2 mb-5">
+          <FiClock className="text-orange-400" size={18} />
+          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">Monitoring Interval</h2>
+        </div>
+
+        <div className="flex items-center gap-3 mb-4">
+          <span className={`w-2.5 h-2.5 rounded-full ${monitoringRunning ? 'bg-emerald-400 animate-pulse' : 'bg-gray-600'}`} />
+          <span className={`text-sm font-medium ${monitoringRunning ? 'text-emerald-400' : 'text-gray-500'}`}>
+            {monitoringRunning ? `Active — every ${intervalSeconds}s` : 'Stopped'}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[180px]">
+            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Interval (seconds)</label>
+            <input
+              type="number"
+              min="5"
+              max="3600"
+              value={intervalSeconds}
+              onChange={(e) => setIntervalSeconds(Math.max(5, parseInt(e.target.value) || 5))}
+              className="w-full bg-[#1a1f2e] border border-gray-700/60 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-orange-500/50 transition-colors"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            {[10, 30, 60, 300].map((sec) => (
+              <button
+                key={sec}
+                onClick={() => setIntervalSeconds(sec)}
+                className={`px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
+                  intervalSeconds === sec
+                    ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40'
+                    : 'bg-[#1a1f2e] text-gray-400 border border-gray-700/60 hover:text-white'
+                }`}
+              >
+                {sec < 60 ? `${sec}s` : `${sec / 60}m`}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={handleUpdateInterval}
+            disabled={monitoringLoading}
+            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-600/40 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
+          >
+            <FiSave size={15} />
+            Apply
+          </button>
+
+          {monitoringRunning ? (
+            <button
+              onClick={handleStopMonitoring}
+              disabled={monitoringLoading}
+              className="flex items-center gap-2 border border-red-500/50 text-red-400 hover:bg-red-500/10 disabled:opacity-40 text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
+            >
+              <FiSquare size={15} />
+              Stop
+            </button>
+          ) : (
+            <button
+              onClick={handleStartMonitoring}
+              disabled={monitoringLoading}
+              className="flex items-center gap-2 border border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-40 text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
+            >
+              <FiPlay size={15} />
+              Start
+            </button>
+          )}
+        </div>
+
+        <p className="text-gray-600 text-[11px] mt-3">
+          Min: 5s. Signals (BUY/SELL/HOLD) will be sent to Telegram every cycle for all active strategies below.
+        </p>
+      </div>
+
+      {/* Strategy Monitoring Section */}
       <div className="bg-[#151923] rounded-xl p-6 border border-gray-800">
         <div className="flex items-center gap-2 mb-5">
           <FiActivity className="text-purple-400" size={18} />

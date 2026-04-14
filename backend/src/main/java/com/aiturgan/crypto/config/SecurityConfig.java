@@ -41,6 +41,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/market/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/ws/**").permitAll()
+                        .requestMatchers("/api/monitoring/**").authenticated()
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated()
                 )
