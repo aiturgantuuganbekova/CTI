@@ -19,9 +19,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      const url = error.config?.url || '';
+      // Only clear auth on non-auth endpoints (don't clear on login/register/google failures)
+      if (!url.includes('/auth/')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
