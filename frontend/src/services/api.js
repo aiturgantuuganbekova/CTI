@@ -18,15 +18,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      const url = error.config?.url || '';
-      // Only clear auth on non-auth endpoints (don't clear on login/register/google failures)
-      if (!url.includes('/auth/')) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-      }
-    }
+    // Don't auto-redirect on 401. Let React handle auth state.
+    // Token expiry is handled by ProtectedRoute checking isAuthenticated.
     return Promise.reject(error);
   }
 );
