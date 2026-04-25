@@ -2,6 +2,7 @@ const en = {
   // Navigation
   nav: {
     dashboard: 'Dashboard',
+    indicator: 'Indicator',
     strategy: 'Strategy',
     backtest: 'Backtest',
     reports: 'Reports',

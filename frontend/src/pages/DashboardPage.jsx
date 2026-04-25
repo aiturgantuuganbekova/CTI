@@ -2,31 +2,102 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Chart from 'react-apexcharts';
 import { marketAPI, signalAPI } from '../services/api';
 import { toast } from 'react-toastify';
-import { FiCheckCircle, FiTarget, FiRefreshCw, FiBarChart2, FiTrendingUp } from 'react-icons/fi';
-import { useI18n } from '../i18n';
+import { FiActivity, FiTrendingUp } from 'react-icons/fi';
 
 const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT'];
+const STRATEGIES = ['RSI', 'MACD', 'EMA', 'BOLLINGER_BANDS', 'COMBINED'];
+const STRATEGY_LABELS = {
+  RSI: 'RSI',
+  MACD: 'MACD',
+  EMA: 'EMA',
+  BOLLINGER_BANDS: 'Bollinger',
+  COMBINED: 'Combined',
+};
 const TIMEFRAMES = ['5m', '15m', '30m', '1h', '4h', '1d'];
 
+const SIGNAL_EXPLANATIONS = {
+  RSI: {
+    BUY: 'RSI dropped below 30 — the asset entered the oversold zone, suggesting a potential bullish reversal.',
+    SELL: 'RSI rose above 70 — the asset is overbought. A pullback or correction is likely.',
+    HOLD: 'RSI is in the neutral range (30–70). No extreme readings — wait for a clearer signal.',
+  },
+  MACD: {
+    BUY: 'MACD line crossed above the signal line, indicating building bullish momentum.',
+    SELL: 'MACD line crossed below the signal line, indicating building bearish momentum.',
+    HOLD: 'MACD shows no decisive crossover. Momentum is mixed — no trade recommended.',
+  },
+  EMA: {
+    BUY: 'Price crossed above EMA 200, confirming a long-term uptrend.',
+    SELL: 'Price crossed below EMA 200, confirming a long-term downtrend.',
+    HOLD: 'Price is near the EMA levels. Trend direction is unclear — reduce position risk.',
+  },
+  BOLLINGER_BANDS: {
+    BUY: "Price touched the lower Bollinger Band — statistically it's likely to revert toward the mean.",
+    SELL: "Price touched the upper Bollinger Band — statistically it's likely to revert toward the mean.",
+    HOLD: 'Price is within the Bollinger Bands range. No extreme volatility detected.',
+  },
+  COMBINED: {
+    BUY: 'Multiple indicators align bullishly: RSI oversold + MACD bullish crossover + price above key EMA levels.',
+    SELL: 'Multiple indicators align bearishly: RSI overbought + MACD bearish crossover + price below key EMA levels.',
+    HOLD: 'Indicators show mixed signals. Conflicting evidence — better to wait for alignment.',
+  },
+};
+
+const getExplanation = (strategyType, signalType) => {
+  const st = (strategyType || '').toUpperCase();
+  const sig = (signalType || '').toUpperCase();
+  return (
+    SIGNAL_EXPLANATIONS[st]?.[sig] ||
+    (sig === 'BUY'
+      ? 'Bullish signal detected by the algorithm.'
+      : sig === 'SELL'
+      ? 'Bearish signal detected by the algorithm.'
+      : 'No clear directional signal at this time.')
+  );
+};
+
+const SignalBadge = ({ type }) => {
+  if (!type) return <span className="text-gray-500 text-xs">—</span>;
+  const st = type.toUpperCase();
+  if (st === 'BUY')
+    return (
+      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-500/15 text-green-400 border border-green-500/25">
+        BUY
+      </span>
+    );
+  if (st === 'SELL')
+    return (
+      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-500/15 text-red-400 border border-red-500/25">
+        SELL
+      </span>
+    );
+  return (
+    <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/25">
+      HOLD
+    </span>
+  );
+};
+
+const Spinner = ({ size = 6 }) => (
+  <svg className={`animate-spin h-${size} w-${size} text-blue-500`} viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+  </svg>
+);
+
 const DashboardPage = () => {
-  const { t } = useI18n();
   const [symbol, setSymbol] = useState('BTCUSDT');
   const [timeframe, setTimeframe] = useState('1h');
-  const [price, setPrice] = useState(null);
+  const [strategy, setStrategy] = useState('COMBINED');
   const [klines, setKlines] = useState([]);
   const [signals, setSignals] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchPrice = useCallback(async () => {
-    try {
-      const res = await marketAPI.getPrice(symbol);
-      setPrice(res.data);
-    } catch (err) {
-      console.error('Failed to fetch price:', err);
-    }
-  }, [symbol]);
+  const [signal, setSignal] = useState(null);
+  const [indicators, setIndicators] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const [chartLoading, setChartLoading] = useState(true);
 
   const fetchKlines = useCallback(async () => {
+    setChartLoading(true);
     try {
       const res = await marketAPI.getKlines(symbol, timeframe, 100);
       const data = res.data;
@@ -42,6 +113,8 @@ const DashboardPage = () => {
       setKlines(formatted);
     } catch (err) {
       console.error('Failed to fetch klines:', err);
+    } finally {
+      setChartLoading(false);
     }
   }, [symbol, timeframe]);
 
@@ -49,256 +122,328 @@ const DashboardPage = () => {
     try {
       const res = await signalAPI.getAll();
       const data = Array.isArray(res.data) ? res.data : res.data?.content || [];
-      setSignals(data.slice(0, 5));
+      setSignals(data.slice(0, 12));
     } catch (err) {
       console.error('Failed to fetch signals:', err);
     }
   }, []);
 
   useEffect(() => {
-    const loadAll = async () => {
-      setLoading(true);
-      await Promise.all([fetchPrice(), fetchKlines(), fetchSignals()]);
-      setLoading(false);
-    };
-    loadAll();
-  }, [fetchPrice, fetchKlines, fetchSignals]);
+    fetchKlines();
+  }, [fetchKlines]);
 
   useEffect(() => {
-    const interval = setInterval(fetchPrice, 10000);
+    fetchSignals();
+    const interval = setInterval(fetchSignals, 15000);
     return () => clearInterval(interval);
-  }, [fetchPrice]);
+  }, [fetchSignals]);
+
+  const handleAnalyze = async () => {
+    setGenerating(true);
+    setSignal(null);
+    setIndicators(null);
+    try {
+      const [signalRes, indicatorRes] = await Promise.all([
+        signalAPI.generate(symbol, strategy, timeframe),
+        marketAPI.getIndicators(symbol, strategy, timeframe).catch(() => null),
+      ]);
+      setSignal(signalRes.data);
+      if (indicatorRes) setIndicators(indicatorRes.data);
+      fetchSignals();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Signal generation failed');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const chartOptions = {
     chart: {
       type: 'candlestick',
-      height: 450,
-      background: '#151923',
-      toolbar: { show: true, tools: { download: true, zoom: true, pan: true, reset: true } },
+      height: 360,
+      background: 'transparent',
+      toolbar: { show: false },
+      animations: { enabled: false },
     },
     theme: { mode: 'dark' },
     grid: { borderColor: '#1e293b' },
-    xaxis: {
-      type: 'datetime',
-      labels: { style: { colors: '#94a3b8' } },
-    },
+    xaxis: { type: 'datetime', labels: { style: { colors: '#475569' }, datetimeUTC: false } },
     yaxis: {
       opposite: true,
       tooltip: { enabled: true },
-      labels: {
-        style: { colors: '#94a3b8' },
-        formatter: (val) => val?.toFixed(2),
-      },
+      labels: { style: { colors: '#475569' }, formatter: (val) => val?.toFixed(0) },
     },
     plotOptions: {
-      candlestick: {
-        colors: { upward: '#22c55e', downward: '#ef4444' },
-      },
+      candlestick: { colors: { upward: '#22c55e', downward: '#ef4444' } },
     },
     tooltip: { theme: 'dark' },
   };
 
-  const chartSeries = [{ data: klines }];
+  const signalType = signal ? (signal.signalType || signal.type || '').toUpperCase() : null;
+  const signalColorClass =
+    signalType === 'BUY' ? 'text-emerald-400' : signalType === 'SELL' ? 'text-red-400' : 'text-yellow-400';
+  const signalBorderClass =
+    signalType === 'BUY'
+      ? 'border-emerald-500/30'
+      : signalType === 'SELL'
+      ? 'border-red-500/30'
+      : signalType === 'HOLD'
+      ? 'border-yellow-500/30'
+      : 'border-gray-800';
 
-  const signalTypeBadge = (type) => {
-    if (!type) return <span className="text-gray-400">-</span>;
-    const st = type.toUpperCase();
-    if (st === 'BUY')
-      return (
-        <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
-          BUY
-        </span>
-      );
-    if (st === 'SELL')
-      return (
-        <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-red-500 text-white">
-          SELL
-        </span>
-      );
-    return (
-      <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-yellow-500 text-black">
-        HOLD
-      </span>
-    );
-  };
-
-  const confidenceBar = (confidence) => {
-    if (!confidence && confidence !== 0) return <span className="text-gray-500">-</span>;
-    const pct = Math.round(confidence);
-    let barColor = 'bg-green-500';
-    if (pct < 50) barColor = 'bg-red-500';
-    else if (pct < 70) barColor = 'bg-yellow-500';
-    return (
-      <div className="flex items-center gap-2">
-        <div className="w-24 h-2 rounded-full bg-gray-700 overflow-hidden">
-          <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
-        </div>
-        <span className="text-gray-400 text-xs">{pct}%</span>
-      </div>
-    );
-  };
-
-  const metricCards = [
-    {
-      icon: <FiCheckCircle className="text-green-400" size={18} />,
-      label: t('dashboard.roi'),
-      value: '12.4%',
-      valueColor: 'text-green-400',
-      sub: '+2.3% ' + t('dashboard.roiSubtitle'),
-      iconBg: 'bg-green-500/10',
-    },
-    {
-      icon: <FiTarget className="text-blue-400" size={18} />,
-      label: t('dashboard.winRate'),
-      value: '68%',
-      valueColor: 'text-white',
-      sub: t('common.over') + ' 142 ' + t('dashboard.winRateSubtitle'),
-      iconBg: 'bg-blue-500/10',
-    },
-    {
-      icon: <FiRefreshCw className="text-purple-400" size={18} />,
-      label: t('dashboard.activeSignals'),
-      value: String(signals.length || 3),
-      valueColor: 'text-white',
-      sub: t('dashboard.activeSignalsSubtitle'),
-      iconBg: 'bg-purple-500/10',
-    },
-    {
-      icon: <FiBarChart2 className="text-orange-400" size={18} />,
-      label: t('dashboard.totalTrades'),
-      value: '142',
-      valueColor: 'text-white',
-      sub: t('dashboard.totalTradesSubtitle'),
-      iconBg: 'bg-orange-500/10',
-    },
-  ];
+  const rsiValue = indicators?.rsi ?? indicators?.RSI ?? null;
+  const ema200 = indicators?.ema200 ?? indicators?.EMA_200 ?? indicators?.ema ?? null;
+  const volatility = indicators?.volatility ?? indicators?.atr ?? null;
+  const volatilityLabel = volatility
+    ? volatility > 0.03
+      ? 'High'
+      : volatility > 0.015
+      ? 'Medium'
+      : 'Low'
+    : null;
+  const volatilityColor =
+    volatilityLabel === 'High'
+      ? 'text-red-400'
+      : volatilityLabel === 'Medium'
+      ? 'text-yellow-400'
+      : 'text-emerald-400';
 
   return (
-    <div className="space-y-6">
-      {/* Top Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {metricCards.map((card) => (
-          <div
-            key={card.label}
-            className="bg-[#151923] rounded-xl p-5 border border-gray-800 relative"
-          >
-            <div className={`absolute top-4 right-4 p-2 rounded-lg ${card.iconBg}`}>
-              {card.icon}
-            </div>
-            <p className="text-gray-400 text-xs font-semibold tracking-wider mb-2">{card.label}</p>
-            <p className={`text-3xl font-bold ${card.valueColor}`}>{card.value}</p>
-            <p className="text-sm text-gray-500 mt-1">{card.sub}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Symbol Tabs & Timeframe Buttons */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2 flex-wrap">
+    <div className="space-y-5">
+      {/* Controls row */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Symbol tabs */}
+        <div className="flex items-center gap-1.5">
           {SYMBOLS.map((s) => (
             <button
               key={s}
               onClick={() => setSymbol(s)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 symbol === s
-                  ? 'bg-green-500 text-white'
-                  : 'bg-[#151923] text-gray-400 border border-gray-700 hover:border-gray-500'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-[#151923] text-gray-400 border border-gray-700/70 hover:border-gray-600'
               }`}
             >
-              {s}
+              {s.replace('USDT', '')}
             </button>
           ))}
         </div>
+
+        <div className="h-4 w-px bg-gray-800 hidden sm:block" />
+
+        {/* Timeframe */}
         <div className="flex items-center gap-1">
           {TIMEFRAMES.map((tf) => (
             <button
               key={tf}
               onClick={() => setTimeframe(tf)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                timeframe === tf
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-[#1a1f2e] text-gray-400 hover:text-white border border-gray-700/50'
+              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                timeframe === tf ? 'bg-[#1e293b] text-white' : 'text-gray-600 hover:text-gray-300'
               }`}
             >
               {tf}
             </button>
           ))}
         </div>
+
+        <div className="h-4 w-px bg-gray-800 hidden sm:block" />
+
+        {/* Strategy selector */}
+        <select
+          value={strategy}
+          onChange={(e) => setStrategy(e.target.value)}
+          className="bg-[#151923] border border-gray-700/70 rounded-lg px-3 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500/60 appearance-none cursor-pointer"
+        >
+          {STRATEGIES.map((s) => (
+            <option key={s} value={s}>
+              {STRATEGY_LABELS[s]}
+            </option>
+          ))}
+        </select>
+
+        {/* Analyze button */}
+        <button
+          onClick={handleAnalyze}
+          disabled={generating}
+          className="ml-auto flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold px-5 py-2 rounded-lg transition-colors"
+        >
+          {generating ? <Spinner size={3} /> : <FiActivity size={13} />}
+          Analyze
+        </button>
       </div>
 
-      {/* Candlestick Chart */}
-      <div className="bg-[#151923] rounded-xl p-5 border border-gray-800">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <FiTrendingUp className="text-green-400" />
-            <h2 className="text-lg font-semibold text-white">{symbol} Price Chart</h2>
+      {/* Main: chart + signal panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+        {/* Candlestick chart */}
+        <div className="lg:col-span-3 bg-[#151923] rounded-xl p-5 border border-gray-800">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-white font-semibold text-sm">
+              {symbol} <span className="text-gray-600 font-normal">/ {timeframe}</span>
+            </span>
+            <FiTrendingUp className="text-gray-700" size={16} />
           </div>
-          <span className="text-xs text-gray-500">{timeframe} timeframe</span>
+          {chartLoading ? (
+            <div className="flex items-center justify-center h-[360px]">
+              <Spinner size={7} />
+            </div>
+          ) : klines.length > 0 ? (
+            <Chart options={chartOptions} series={[{ data: klines }]} type="candlestick" height={360} />
+          ) : (
+            <div className="flex items-center justify-center h-[360px] text-gray-600 text-sm">
+              No chart data
+            </div>
+          )}
         </div>
-        {loading ? (
-          <div className="flex items-center justify-center h-[450px]">
-            <svg className="animate-spin h-8 w-8 text-blue-500" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
+
+        {/* Signal panel */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
+          {/* Signal result */}
+          <div className={`bg-[#151923] rounded-xl p-5 border ${signalBorderClass} flex-1`}>
+            <h3 className="text-[10px] tracking-widest text-gray-500 uppercase font-semibold mb-4">
+              Current Signal
+            </h3>
+            {signal ? (
+              <>
+                <div className={`text-5xl font-extrabold tracking-tight ${signalColorClass} mb-4`}>
+                  {signalType}
+                </div>
+                <p className="text-sm text-gray-400 leading-relaxed">
+                  {getExplanation(signal.strategyType || strategy, signalType)}
+                </p>
+                <div className="mt-4 pt-4 border-t border-gray-800 flex flex-wrap gap-4 text-xs text-gray-500">
+                  {signal.price && (
+                    <span>
+                      Entry:{' '}
+                      <span className="text-white font-mono">
+                        ${parseFloat(signal.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </span>
+                    </span>
+                  )}
+                  {signal.confidence && (
+                    <span>
+                      Confidence:{' '}
+                      <span className="text-white font-mono">{Math.round(signal.confidence)}%</span>
+                    </span>
+                  )}
+                  <span>
+                    Strategy: <span className="text-gray-300">{signal.strategyType || strategy}</span>
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-gray-600">
+                <FiActivity size={28} className="mb-3 opacity-30" />
+                <p className="text-sm text-center">
+                  Select a symbol, strategy, and timeframe above, then click "Analyze".
+                </p>
+              </div>
+            )}
           </div>
-        ) : klines.length > 0 ? (
-          <Chart options={chartOptions} series={chartSeries} type="candlestick" height={450} />
-        ) : (
-          <div className="flex items-center justify-center h-[450px] text-gray-500">
-            {t('dashboard.noChartData')}
+
+          {/* Indicator readings */}
+          <div className="bg-[#151923] rounded-xl p-5 border border-gray-800">
+            <h3 className="text-[10px] tracking-widest text-gray-500 uppercase font-semibold mb-4">
+              Indicator Readings
+            </h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-400">RSI (14)</span>
+                <span
+                  className={`text-sm font-mono font-medium ${
+                    rsiValue !== null
+                      ? rsiValue > 70
+                        ? 'text-red-400'
+                        : rsiValue < 30
+                        ? 'text-emerald-400'
+                        : 'text-blue-400'
+                      : 'text-gray-700'
+                  }`}
+                >
+                  {rsiValue !== null ? rsiValue.toFixed(2) : '—'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-400">EMA (200)</span>
+                <span className="text-sm font-mono text-gray-300">
+                  {ema200 !== null
+                    ? `$${Number(ema200).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
+                    : '—'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-400">Volatility</span>
+                <span className={`text-sm font-medium ${volatilityLabel ? volatilityColor : 'text-gray-700'}`}>
+                  {volatilityLabel || '—'}
+                </span>
+              </div>
+            </div>
+            {!signal && (
+              <p className="text-[11px] text-gray-700 mt-4">Run "Analyze" to populate readings.</p>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Recent Signals Table */}
+      {/* Live signals from monitoring */}
       <div className="bg-[#151923] rounded-xl p-5 border border-gray-800">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white tracking-wide">{t('dashboard.recentSignals')}</h2>
-          <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-            {t('dashboard.exportData')}
-          </button>
+          <h2 className="text-sm font-semibold text-white">
+            Live Signals
+            <span className="text-gray-600 text-xs font-normal ml-2">auto-refreshes every 15s</span>
+          </h2>
         </div>
         {signals.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-                  <th className="text-left py-3 px-3">{t('dashboard.time')}</th>
-                  <th className="text-left py-3 px-3">{t('dashboard.symbol')}</th>
-                  <th className="text-left py-3 px-3">{t('dashboard.strategyCol')}</th>
-                  <th className="text-left py-3 px-3">{t('dashboard.signalType')}</th>
-                  <th className="text-left py-3 px-3">{t('dashboard.price')}</th>
-                  <th className="text-left py-3 px-3">{t('dashboard.confidence')}</th>
+                <tr className="text-gray-600 text-[10px] uppercase tracking-wider border-b border-gray-800">
+                  <th className="text-left py-2 px-3">Time</th>
+                  <th className="text-left py-2 px-3">Symbol</th>
+                  <th className="text-left py-2 px-3">Strategy</th>
+                  <th className="text-left py-2 px-3">Signal</th>
+                  <th className="text-left py-2 px-3">Price</th>
+                  <th className="text-left py-2 px-3 hidden lg:table-cell">Why</th>
                 </tr>
               </thead>
               <tbody>
-                {signals.map((sig, i) => (
-                  <tr
-                    key={sig.id || i}
-                    className="border-b border-gray-800/50 hover:bg-[#1a1f2e] transition-colors"
-                  >
-                    <td className="py-3 px-3 text-gray-500 text-xs">
-                      {sig.createdAt ? new Date(sig.createdAt).toLocaleString() : '-'}
-                    </td>
-                    <td className="py-3 px-3 text-white font-medium">{sig.symbol}</td>
-                    <td className="py-3 px-3 text-gray-300">{sig.strategyType || sig.strategy || '-'}</td>
-                    <td className="py-3 px-3">
-                      {signalTypeBadge(sig.signalType || sig.type)}
-                    </td>
-                    <td className="py-3 px-3 text-gray-300">
-                      ${parseFloat(sig.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                    <td className="py-3 px-3">
-                      {confidenceBar(sig.confidence)}
-                    </td>
-                  </tr>
-                ))}
+                {signals.map((sig, i) => {
+                  const sigType = (sig.signalType || sig.type || '').toUpperCase();
+                  return (
+                    <tr
+                      key={sig.id || i}
+                      className="border-b border-gray-800/40 hover:bg-[#1a1f2e] transition-colors"
+                    >
+                      <td className="py-2.5 px-3 text-gray-500 text-xs">
+                        {sig.createdAt ? new Date(sig.createdAt).toLocaleTimeString() : '—'}
+                      </td>
+                      <td className="py-2.5 px-3 text-white font-medium text-xs">{sig.symbol}</td>
+                      <td className="py-2.5 px-3 text-gray-400 text-xs">{sig.strategyType || '—'}</td>
+                      <td className="py-2.5 px-3">
+                        <SignalBadge type={sigType} />
+                      </td>
+                      <td className="py-2.5 px-3 text-gray-300 text-xs font-mono">
+                        $
+                        {parseFloat(sig.price || 0).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+                      <td className="py-2.5 px-3 text-gray-600 text-xs hidden lg:table-cell max-w-xs truncate">
+                        {getExplanation(sig.strategyType, sigType)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         ) : (
-          <p className="text-gray-500 text-center py-8">{t('dashboard.noSignals')}</p>
+          <p className="text-gray-600 text-sm text-center py-10">
+            No signals yet. Go to Settings → activate a strategy to start monitoring.
+          </p>
         )}
       </div>
     </div>

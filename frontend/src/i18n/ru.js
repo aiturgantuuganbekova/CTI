@@ -2,6 +2,7 @@ const ru = {
   // Навигация
   nav: {
     dashboard: 'Панель',
+    indicator: 'Индикатор',
     strategy: 'Стратегия',
     backtest: 'Бэктест',
     reports: 'Отчёты',

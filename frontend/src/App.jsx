@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { I18nProvider, useI18n } from './i18n';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { FiHome, FiActivity, FiBarChart2, FiFileText, FiLogOut, FiBell, FiSettings, FiGlobe } from 'react-icons/fi';
+import { FiActivity, FiLogOut, FiBell, FiSettings, FiGlobe } from 'react-icons/fi';
 import { marketAPI } from './services/api';
 
 import LoginPage from './pages/LoginPage';
@@ -15,16 +15,14 @@ import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return children;
 };
 
 const navKeys = [
-  { to: '/', icon: FiHome, labelKey: 'nav.dashboard' },
-  { to: '/strategy', icon: FiActivity, labelKey: 'nav.strategy' },
-  { to: '/backtest', icon: FiBarChart2, labelKey: 'nav.backtest' },
-  { to: '/reports', icon: FiFileText, labelKey: 'nav.reports' },
+  { to: '/', icon: FiActivity, labelKey: 'nav.indicator' },
   { to: '/settings', icon: FiSettings, labelKey: 'nav.settings' },
 ];
 
@@ -144,15 +142,9 @@ const TopBar = () => {
       </div>
 
       {/* Right: actions */}
-      <div className="flex items-center gap-3">
-        <button className="bg-green-600 hover:bg-green-500 text-white text-xs font-semibold px-4 py-2 rounded transition-colors">
-          {t('topbar.executeTrade')}
-        </button>
+      <div className="flex items-center gap-2">
         <button className="text-gray-400 hover:text-white transition-colors p-2 rounded hover:bg-white/5">
           <FiBell size={17} />
-        </button>
-        <button className="text-gray-400 hover:text-white transition-colors p-2 rounded hover:bg-white/5">
-          <FiSettings size={17} />
         </button>
       </div>
     </header>
